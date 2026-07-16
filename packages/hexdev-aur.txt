@@ -1,0 +1,5 @@
+google-chrome
+onlyoffice-bin
+sunshine-bin
+ttf-ms-fonts
+visual-studio-code-bin

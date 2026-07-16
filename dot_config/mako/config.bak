@@ -1,0 +1,17 @@
+# Dracula theme for mako
+font=IosevkaTerm Nerd Font 11
+background-color=#282a36
+text-color=#f8f8f2
+border-color=#bd93f9
+border-size=2
+border-radius=10
+padding=12
+margin=8
+default-timeout=6000
+anchor=top-right
+width=360
+height=120
+
+[urgency=critical]
+border-color=#ff5555
+default-timeout=0

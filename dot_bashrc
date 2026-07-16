@@ -1,0 +1,18 @@
+#
+# ~/.bashrc
+#
+
+# If not running interactively, don't do anything
+[[ $- != *i* ]] && return
+
+alias ls='ls --color=auto'
+alias grep='grep --color=auto'
+PS1='[\u@\h \W]\$ '
+export PATH="$HOME/.local/bin:$PATH"
+
+# Engram cloud (recuperación memoria — server prod <host>)
+[ -f ~/.config/shell/secrets.sh ] && . ~/.config/shell/secrets.sh
+export ENGRAM_CLOUD_SERVER=http://<host>:<port>
+export ENGRAM_CLOUD_AUTOSYNC=1
+
+eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"

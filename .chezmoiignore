@@ -1,0 +1,15 @@
+# Repo-meta files: keep them in the repo, but chezmoi must NOT create them in $HOME.
+README.md
+LICENSE
+packages/
+
+# Secrets: never manage the machine-local secrets file (created by hand per machine).
+.config/shell/secrets.sh
+
+# Regenerable state that must never be tracked, in case it is ever added by mistake.
+.config/fish/completions/
+.config/fish/generated_completions/
+.config/fish/fish_variables
+.config/fish/__pycache__/
+.config/nvim/spell/
+.config/zellij/plugins/

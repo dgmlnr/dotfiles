@@ -1,0 +1,133 @@
+/* Dracula premium — base monocroma + acento violeta profundo */
+* {
+    font-family: "IosevkaTerm Nerd Font", monospace;
+    font-size: 15px;
+    min-height: 0;
+    border: none;
+    border-radius: 0;
+}
+
+window#waybar {
+    background: rgba(40, 42, 54, 0.92);   /* #282a36 */
+    color: #f8f8f2;
+}
+
+/* Tooltips Dracula */
+tooltip {
+    background: rgba(40, 42, 54, 0.98);
+    border: 1px solid #a17dd4;
+    border-radius: 10px;
+}
+tooltip label {
+    color: #f8f8f2;
+    padding: 2px 4px;
+}
+
+/* ---------- Workspaces ---------- */
+#workspaces {
+    margin-left: 6px;
+}
+
+#workspaces button {
+    padding: 0 10px;
+    margin: 5px 3px;
+    border-radius: 9px;
+    color: #6272a4;
+    background: transparent;
+    transition: all 0.2s ease;
+}
+
+#workspaces button.active {
+    color: #f8f8f2;
+    background: #a17dd4;   /* acento violeta profundo */
+}
+
+#workspaces button:hover {
+    color: #f8f8f2;
+    background: rgba(68, 71, 90, 0.6);    /* #44475a */
+    box-shadow: none;
+    text-shadow: none;
+}
+
+#window {
+    color: #6272a4;
+    margin-left: 8px;
+}
+
+/* ---------- Taskbar (script per-workspace) ---------- */
+#custom-wstaskbar {
+    color: #f8f8f2;
+    margin-left: 6px;
+}
+
+/* ---------- Clock (center) ---------- */
+#clock {
+    color: #f8f8f2;
+    background: rgba(68, 71, 90, 0.35);
+    padding: 0 18px;
+    margin: 5px 0;
+    border-radius: 11px;
+    font-weight: bold;
+}
+
+/* ---------- Right modules (base monocroma, píldoras) ---------- */
+#pulseaudio,
+#network,
+#cpu,
+#memory {
+    color: #f8f8f2;                        /* números en blanco */
+    padding: 0 13px;
+    margin: 5px 3px;
+    border-radius: 9px;
+    background: rgba(68, 71, 90, 0.35);
+    transition: background 0.2s ease;
+}
+
+#pulseaudio:hover,
+#network:hover,
+#cpu:hover,
+#memory:hover {
+    background: rgba(68, 71, 90, 0.6);
+}
+
+#pulseaudio.muted { color: #6272a4; }
+
+/* El color entra SOLO como señal de carga, no de decoración */
+#cpu.warning,
+#memory.warning  { color: #f1fa8c; }   /* yellow */
+#cpu.critical,
+#memory.critical { color: #ff5555; }   /* red */
+
+#tray {
+    padding: 0 8px;
+    margin: 5px 2px;
+}
+
+#tray > .passive { -gtk-icon-effect: dim; }
+#tray > .needs-attention {
+    -gtk-icon-effect: highlight;
+}
+
+/* ---------- Launcher / Power ---------- */
+#custom-launcher {
+    color: #bd93f9;
+    font-size: 17px;
+    padding: 0 12px 0 14px;
+    transition: color 0.2s ease;
+}
+#custom-launcher:hover {
+    color: #a17dd4;
+}
+
+#custom-power {
+    color: #ff5555;
+    margin: 5px 6px 5px 3px;
+    padding: 0 13px;
+    border-radius: 9px;
+    background: rgba(255, 85, 85, 0.12);
+    transition: all 0.2s ease;
+}
+#custom-power:hover {
+    color: #f8f8f2;
+    background: #ff5555;
+}

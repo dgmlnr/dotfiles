@@ -1,0 +1,57 @@
+/* Dracula premium para wofi — acento violeta profundo */
+* {
+    font-family: "IosevkaTerm Nerd Font", monospace;
+    font-size: 14px;
+}
+
+window {
+    background-color: rgba(40, 42, 54, 0.96);   /* #282a36 */
+    border: 1px solid #a17dd4;
+    border-radius: 14px;
+    color: #f8f8f2;
+}
+
+#input {
+    margin: 14px 14px 6px 14px;
+    padding: 11px 14px;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    background-color: rgba(68, 71, 90, 0.55);   /* #44475a calmo */
+    color: #f8f8f2;
+}
+
+#input:focus {
+    border: 1px solid #a17dd4;
+    background-color: rgba(68, 71, 90, 0.75);
+}
+
+#inner-box {
+    margin: 6px 12px 12px 12px;
+}
+
+#scroll {
+    margin: 0;
+}
+
+#entry {
+    padding: 9px 12px;
+    margin: 2px 0;
+    border-radius: 10px;
+}
+
+#entry:selected {
+    background-color: #a17dd4;
+    color: #f8f8f2;
+}
+
+#entry:selected #text {
+    color: #f8f8f2;
+}
+
+#text {
+    color: #f8f8f2;
+}
+
+#entry:hover {
+    background-color: rgba(68, 71, 90, 0.5);
+}

@@ -1,0 +1,9 @@
+[user]
+	name = dgmlnr
+	email = 127269722+dgmlnr@users.noreply.github.com
+[credential "https://github.com"]
+	helper = 
+	helper = !/home/linuxbrew/.linuxbrew/bin/gh auth git-credential
+[credential "https://gist.github.com"]
+	helper = 
+	helper = !/home/linuxbrew/.linuxbrew/bin/gh auth git-credential

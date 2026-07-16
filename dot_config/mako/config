@@ -1,0 +1,43 @@
+# Dracula theme for mako — refined
+font=IosevkaTerm Nerd Font 10
+background-color=#282a36f0
+text-color=#f8f8f2
+border-color=#bd93f9
+border-size=2
+border-radius=14
+
+# Visual hierarchy: bold title, dimmed body
+markup=1
+format=<b>%s</b>\n<span alpha="75%%">%b</span>
+
+# Breathing room
+padding=14
+margin=8
+outer-margin=14
+
+# Consistent icons
+icon-location=left
+max-icon-size=48
+
+# Progress bar matched to the palette
+progress-color=over #44475a
+
+default-timeout=6000
+anchor=top-right
+width=380
+height=130
+
+[urgency=low]
+border-color=#6272a4
+text-color=#6272a4
+
+[urgency=critical]
+border-color=#ff5555
+default-timeout=0
+
+# Claude Code accent — matched by summary, since Claude sends no app-name
+# (notifications are relayed through Ghostty: desktop-entry=com.mitchellh.ghostty)
+[summary="Claude Code"]
+border-color=#bd93f9
+default-timeout=8000
+icons=0

@@ -1,0 +1,84 @@
+# ╔══════════════════════════════════════════════════════════════════════════════╗
+# ║                         GENTLEMAN DOTS - GHOSTTY                             ║
+# ║                          Optimized for Neovim                                ║
+# ╚══════════════════════════════════════════════════════════════════════════════╝
+
+
+# ┌──────────────────────────────────────────────────────────────────────────────┐
+# │                                   FONT                                       │
+# └──────────────────────────────────────────────────────────────────────────────┘
+
+font-family = IosevkaTerm NF
+font-size = 14
+
+
+# ┌──────────────────────────────────────────────────────────────────────────────┐
+# │                                  WINDOW                                      │
+# └──────────────────────────────────────────────────────────────────────────────┘
+
+background-opacity = 0.95
+background-blur-radius = 20
+
+window-decoration = true
+window-padding-color = extend
+window-step-resize = false
+window-padding-balance = true
+window-height = 100
+window-width = 100
+
+gtk-tabs-location = top
+
+
+# ┌──────────────────────────────────────────────────────────────────────────────┐
+# │                                  SHADER                                      │
+# └──────────────────────────────────────────────────────────────────────────────┘
+
+custom-shader = shaders/cursor_smear_gentleman.glsl
+
+
+# ┌──────────────────────────────────────────────────────────────────────────────┐
+# │                            INPUT / KEYBINDINGS                               │
+# └──────────────────────────────────────────────────────────────────────────────┘
+
+# macOS Alt key fix
+macos-option-as-alt = left
+keybind = alt+left=unbind
+keybind = alt+right=unbind
+
+# Split Management
+keybind = alt+v=new_split:right
+keybind = alt+d=new_split:down
+keybind = alt+x=close_surface
+
+# Tabs (coherente con los splits en Alt): Alt+T nueva tab, Alt+W cerrar tab
+keybind = alt+t=new_tab
+keybind = alt+w=close_tab:this
+keybind = super+f2=prompt_tab_title
+
+# Split Navigation
+keybind = alt+k=goto_split:up
+keybind = alt+j=goto_split:down
+keybind = alt+h=goto_split:left
+keybind = alt+l=goto_split:right
+
+# Split Resize
+keybind = ctrl+shift+j=resize_split:up,10
+keybind = ctrl+shift+k=resize_split:down,10
+keybind = ctrl+shift+h=resize_split:left,10
+keybind = ctrl+shift+l=resize_split:right,10
+
+# Miscellaneous
+keybind = cmd+k=clear_screen
+keybind = shift+enter=text:\x1b\r
+
+# Open file with nvim (write 'nvim' first, then use this keybinding)
+keybind = alt+s=write_screen_file:paste
+
+
+# ┌──────────────────────────────────────────────────────────────────────────────┐
+# │                           GENTLEMAN THEME                                    │
+# └──────────────────────────────────────────────────────────────────────────────┘
+
+# Swapped Gentleman's custom palette for the built-in Dracula theme.
+# Original Gentleman palette is saved in engram ("Gentleman ghostty palette") to revert.
+theme = Dracula
