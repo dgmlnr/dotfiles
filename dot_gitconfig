@@ -7,3 +7,7 @@
 [credential "https://gist.github.com"]
 	helper = 
 	helper = !/home/linuxbrew/.linuxbrew/bin/gh auth git-credential
+[credential]
+	helper = store
+[includeIf "gitdir:~/repos/gitea/"]
+	path = ~/.gitconfig-work
