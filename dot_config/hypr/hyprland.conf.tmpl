@@ -150,7 +150,9 @@ $mainMod = SUPER
 bindd = $mainMod, Q, Abrir terminal, exec, $terminal
 bindd = $mainMod, W, Abrir Herdr (multiplexor de agentes), exec, $terminal -e herdr
 bindd = $mainMod, C, Cerrar ventana activa, killactive,
-bindd = $mainMod, M, Salir de Hyprland (cerrar sesión), exit,
+# SUPER+M (Hyprland's stock `exit` bind) removed on purpose: it tore the session
+# down instantly, with no confirmation, one key away from SUPER+N. Logging out
+# belongs in the power menu, where it is a deliberate choice. SUPER+M is free now.
 bindd = $mainMod, E, Abrir gestor de archivos, exec, $fileManager
 bindd = $mainMod, V, Alternar ventana flotante o en mosaico, togglefloating,
 bindd = $mainMod, R, Abrir lanzador de aplicaciones, exec, $menu
