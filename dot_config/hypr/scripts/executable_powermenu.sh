@@ -12,13 +12,20 @@ options="  Bloquear
 # style-menu.css is built for exactly this (its header names the power menu) and
 # assumes the field is hidden — pairing it with a visible search leaves dead space.
 #
-# The height is derived from the option count so the window never shows a blank
-# row. Constants come from style-menu.css: 20px of chrome (2px border + 8px
-# inner-box margin, both doubled) and 42px per row (30px line box + 5px entry
-# padding + 1px entry margin, the last two doubled). Cross-check: monitor-mode.sh
-# shows 3 rows and hardcodes 146 — and 20 + 3*42 is exactly 146.
+# Height is computed from the row count. The constants below were MEASURED, not
+# derived from the stylesheet: rendering the same menu at 3 and 5 rows and reading
+# the layer surface back with `hyprctl layers` gave 108px and 180px, so a row is
+# exactly 36px and --lines reserves nothing for chrome. CHROME covers what --lines
+# ignores: the 2px border top and bottom plus the inner-box margins from
+# style-menu.css (8px top, 14px bottom — the bottom is deliberately larger so the
+# last action does not sit against the rounded border).
+#
+# Do not switch this back to --lines: it sizes to content exactly, so the margins
+# have no room and eat the last row instead of padding it.
+ROW_PX=36
+CHROME_PX=26
 rows=$(printf '%s\n' "$options" | wc -l)
-height=$(( 20 + rows * 42 ))
+height=$(( rows * ROW_PX + CHROME_PX ))
 
 chosen=$(printf '%s' "$options" | wofi --dmenu --prompt "Power" --hide-search \
     -D image_size=0 --width 220 --height "$height" --insensitive -D single_click=true \

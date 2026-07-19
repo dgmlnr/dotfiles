@@ -21,8 +21,10 @@ window {
     background: transparent;
 }
 
+/* Extra bottom margin: with --lines the window hugs the content exactly, so an
+   even 8px all round leaves the last row visually glued to the rounded border. */
 #inner-box {
-    margin: 8px;
+    margin: 8px 8px 14px 8px;
 }
 
 #scroll {

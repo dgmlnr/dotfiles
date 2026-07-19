@@ -86,8 +86,12 @@ OPT_BOTH="󰍺  Ambos (externo + notebook)"
 OPT_EXT="󰍹  Solo monitor externo"
 OPT_NB="󰌢  Solo notebook"
 
+# Same measured sizing as powermenu.sh: 36px per row, plus 26px of chrome that
+# wofi does not account for (2px border top and bottom, 8px inner-box margin on
+# top, 14px on the bottom). The old hardcoded 146 was 12px too tall and left a
+# sliver of dead space below the last option.
 choice=$(printf '%s\n' "$OPT_BOTH" "$OPT_EXT" "$OPT_NB" \
-  | wofi --dmenu --hide-search -D image_size=0 --width 500 --height 146 --insensitive \
+  | wofi --dmenu --hide-search -D image_size=0 --width 500 --height $(( 3 * 36 + 26 )) --insensitive \
     --style "$HOME/.config/wofi/style-menu.css")
 
 [ -z "$choice" ] && exit 0   # cancelled
