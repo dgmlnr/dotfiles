@@ -97,8 +97,12 @@ box stays reachable, but a laptop needs idle-lock and screen-off.
 
 ## Other risks worth fixing while in here
 
-- `hyprland.conf` and `waybar/config.jsonc` hardcode `/home/<user>` in 14 places
-  across 8 files. Waybar JSON cannot expand `$HOME`, so it needs template treatment.
+- ~~`hyprland.conf` and `waybar/config.jsonc` hardcode `/home/<user>` in 14 places
+  across 8 files. Waybar JSON cannot expand `$HOME`, so it needs template treatment.~~
+  DONE: 15 occurrences across 8 files removed. Shell-executed directives (fish
+  functions, Hyprland `exec-once`/`exec`) use `$HOME`; non-shell contexts
+  (`waybar/config.jsonc`, `hyprlock.conf`, `hyprpaper.conf`) became `.tmpl` files
+  using `{{ .chezmoi.homeDir }}`; `hexdev-intro.py` uses `os.path.expanduser`.
 - `dbus-update-activation-environment` and `herdr` resolve to Homebrew paths. If the
   common core reaches a machine without Homebrew on `PATH`, the dbus line fails and
   portals plus the polkit agent lose their Wayland environment — a much worse failure

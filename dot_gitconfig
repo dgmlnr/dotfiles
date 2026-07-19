@@ -7,8 +7,13 @@
 [credential "https://gist.github.com"]
 	helper = 
 	helper = !/home/linuxbrew/.linuxbrew/bin/gh auth git-credential
+# Fallback helper for every host except GitHub (which the gh helper above handles).
+# libsecret keeps credentials in the session keyring instead of `store`, which wrote
+# them as cleartext to ~/.git-credentials — a bad default anywhere, and worse on a
+# laptop that leaves the building. Needs an org.freedesktop.secrets provider running;
+# ksecretd (KDE) serves it here.
 [credential]
-	helper = store
+	helper = /usr/lib/git-core/git-credential-libsecret
 # Work identity applies per directory: anything under ~/repos/gitea/ commits with the
 # work identity, everything else falls back to the personal default above. The
 # identity follows where the repo LIVES, not where it points — a repo mirrored to

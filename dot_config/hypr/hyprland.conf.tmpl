@@ -28,14 +28,17 @@ $menu = wofi --show drun
 ### AUTOSTART ###
 #################
 # Propagate Wayland env to systemd/dbus so portals + the polkit agent work.
-exec-once = dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP
+# Pinned to /usr/bin on purpose: a bare name resolves to the Homebrew copy, which
+# would leave this line — and therefore portals and the polkit agent — broken on a
+# machine without Homebrew on PATH. That is a far worse failure than a dead keybind.
+exec-once = /usr/bin/dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP
 
 # Authentication agent (graphical password prompts)
 exec-once = systemctl --user start hyprpolkitagent
 
 # Bar, wallpaper, notifications, network tray, idle daemon
 exec-once = waybar
-exec-once = /home/<user>/.config/hypr/scripts/wallpaper.sh
+exec-once = $HOME/.config/hypr/scripts/wallpaper.sh
 exec-once = mako
 # nm-applet disabled: Waybar `network` module is now the clickable network menu (network-menu.sh)
 # exec-once = nm-applet --indicator
@@ -152,7 +155,7 @@ bindd = $mainMod, E, Abrir gestor de archivos, exec, $fileManager
 bindd = $mainMod, V, Alternar ventana flotante o en mosaico, togglefloating,
 bindd = $mainMod, R, Abrir lanzador de aplicaciones, exec, $menu
 bindd = $mainMod, F, Pantalla completa, fullscreen,
-bindd = $mainMod, Escape, Bloquear pantalla, exec, pidof hyprlock || /home/<user>/.config/hypr/scripts/lock.sh
+bindd = $mainMod, Escape, Bloquear pantalla, exec, pidof hyprlock || $HOME/.config/hypr/scripts/lock.sh
 
 # Keybind cheatsheet overlay (searchable list of all binds)
 # Movido a G (K ahora = foco-arriba en hjkl). Letra, no necesita Shift en latam.

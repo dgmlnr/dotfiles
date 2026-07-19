@@ -6,7 +6,12 @@
 
     "modules-left": ["hyprland/workspaces", "custom/wstaskbar"],
     "modules-center": ["clock"],
-    "modules-right": ["pulseaudio", "network", "bluetooth", "cpu", "memory", "tray", "custom/power"],
+    {{/* hexdev (work desktop) has no bluetooth adapter, so the module is dropped
+         there. Any other host — including unknown/new ones, most likely a laptop —
+         gets bluetooth. Both the array entry and its definition block below are
+         guarded, and each guard owns its own trailing comma so the rendered JSON
+         stays valid in either variant. */ -}}
+    "modules-right": ["pulseaudio", "network", {{ if ne .chezmoi.hostname "hexdev" }}"bluetooth", {{ end }}"cpu", "memory", "tray", "custom/power"],
 
     "custom/launcher": {
         "format": "⊞",
@@ -17,7 +22,7 @@
     "custom/power": {
         "format": "⏻",
         "tooltip": false,
-        "on-click": "/home/<user>/.config/hypr/scripts/powermenu.sh"
+        "on-click": "{{ .chezmoi.homeDir }}/.config/hypr/scripts/powermenu.sh"
     },
 
     "hyprland/workspaces": {
@@ -31,7 +36,7 @@
     },
 
     "custom/wstaskbar": {
-        "exec": "/home/<user>/.config/hypr/scripts/ws-taskbar.py",
+        "exec": "{{ .chezmoi.homeDir }}/.config/hypr/scripts/ws-taskbar.py",
         "format": "{}",
         "tooltip": false,
         "escape": true
@@ -66,10 +71,10 @@
         "format-ethernet": "<span color='#bd93f9' rise='-1200' size='125%'>󰈀</span>  eth",
         "format-disconnected": "<span color='#6272a4' rise='-1200' size='125%'>󰖪</span>  off",
         "tooltip-format": "{ifname}: {ipaddr}",
-        "on-click": "/home/<user>/.config/hypr/scripts/network-menu.sh",
+        "on-click": "{{ .chezmoi.homeDir }}/.config/hypr/scripts/network-menu.sh",
         "on-click-right": "nm-connection-editor"
     },
-
+{{ if ne .chezmoi.hostname "hexdev" }}
     "bluetooth": {
         "format": "<span color='#bd93f9' rise='-1200' size='125%'>󰂯</span>",
         "format-connected": "<span color='#bd93f9' rise='-1200' size='125%'>󰂱</span>  ({num_connections})",
@@ -81,7 +86,7 @@
         "tooltip-format-enumerate-connected-battery": "{device_alias} · {device_battery_percentage}%",
         "on-click": "overskride"
     },
-
+{{ end }}
     "cpu": {
         "format": "<span color='#bd93f9' rise='-1200' size='125%'>󰓅</span>  {usage}%",
         "states": { "warning": 70, "critical": 90 },

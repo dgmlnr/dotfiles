@@ -5,7 +5,7 @@
      degradé vertical (luz desde arriba) y las aristas (╗╝║═) van en violeta
      oscuro → 3D real; se dibuja izq→der y le pasa un barrido de brillo
   3) queda fijo con sigilo murciélago + tagline."""
-import sys, time, math, shutil, random, subprocess
+import sys, os, time, math, shutil, random, subprocess
 
 W, H = shutil.get_terminal_size((80, 24))
 out = sys.stdout.write
@@ -14,7 +14,7 @@ def rgb(h): return f"\033[38;2;{int(h[0:2],16)};{int(h[2:4],16)};{int(h[4:6],16)
 RST = "\033[0m"
 BAT = "\U000F0B5F"
 
-FONTDIR = "/home/<user>/.local/share/figlet-fonts"
+FONTDIR = os.path.expanduser("~/.local/share/figlet-fonts")
 FACE = [rgb(h) for h in ("e6d4ff","d2b6fc","bd93f9","a87bef","9162d6","7a52bb")]  # caras: claro→oscuro
 EDGE = rgb("3c2f63")     # aristas de sombra (violeta oscuro) → da el 3D
 SHINE = rgb("ffffff")
