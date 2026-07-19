@@ -152,7 +152,8 @@ bindd = $mainMod, W, Abrir Herdr (multiplexor de agentes), exec, $terminal -e he
 bindd = $mainMod, C, Cerrar ventana activa, killactive,
 # SUPER+M (Hyprland's stock `exit` bind) removed on purpose: it tore the session
 # down instantly, with no confirmation, one key away from SUPER+N. Logging out
-# belongs in the power menu, where it is a deliberate choice. SUPER+M is free now.
+# belongs in the power menu, where it is a deliberate choice. The key stays free
+# in the core; hexdev-home reuses it for the panel blank (see its host file).
 bindd = $mainMod, E, Abrir gestor de archivos, exec, $fileManager
 bindd = $mainMod, V, Alternar ventana flotante o en mosaico, togglefloating,
 bindd = $mainMod, R, Abrir lanzador de aplicaciones, exec, $menu
