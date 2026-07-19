@@ -1,28 +1,27 @@
-/* Dracula premium para wofi — acento violeta profundo */
+/* Dracula premium — a juego con la Waybar. Acento: violeta profundo #a17dd4. */
 * {
     font-family: "IosevkaTerm Nerd Font", monospace;
     font-size: 14px;
 }
 
 window {
-    background-color: rgba(40, 42, 54, 0.96);   /* #282a36 */
-    border: 1px solid #a17dd4;
+    background-color: rgba(40, 42, 54, 0.97);   /* #282a36 casi sólido */
+    border: 2px solid #a17dd4;                  /* mismo acento que la barra */
     border-radius: 14px;
     color: #f8f8f2;
 }
 
 #input {
-    margin: 14px 14px 6px 14px;
-    padding: 11px 14px;
-    border: 1px solid transparent;
+    margin: 12px 12px 6px 12px;
+    padding: 10px 12px;
+    border: 1px solid #6272a4;                  /* borde calmo en reposo */
     border-radius: 10px;
-    background-color: rgba(68, 71, 90, 0.55);   /* #44475a calmo */
+    background-color: #21222c;                  /* un pelín más oscuro que el fondo */
     color: #f8f8f2;
 }
 
 #input:focus {
-    border: 1px solid #a17dd4;
-    background-color: rgba(68, 71, 90, 0.75);
+    border: 1px solid #a17dd4;                  /* se ilumina al enfocar */
 }
 
 #inner-box {
@@ -39,19 +38,21 @@ window {
     border-radius: 10px;
 }
 
+/* Resaltado sutil al pasar el mouse (para menús single-click como el power) */
+#entry:hover {
+    background-color: rgba(98, 114, 164, 0.22);
+}
+
+/* Selección: acento sólido, texto oscuro para contraste */
 #entry:selected {
     background-color: #a17dd4;
-    color: #f8f8f2;
+    color: #282a36;
 }
 
 #entry:selected #text {
-    color: #f8f8f2;
+    color: #282a36;
 }
 
 #text {
     color: #f8f8f2;
-}
-
-#entry:hover {
-    background-color: rgba(68, 71, 90, 0.5);
 }

@@ -1,50 +1,39 @@
-/* Dracula premium — base monocroma + acento violeta profundo */
+/* Dracula — premium refinado (v1): base monocroma + acento violeta.
+   Menos arcoíris, más jerarquía. El color significa algo (estado), no decora. */
 * {
     font-family: "IosevkaTerm Nerd Font", monospace;
-    font-size: 15px;
+    font-size: 15.5px;
     min-height: 0;
     border: none;
     border-radius: 0;
 }
 
 window#waybar {
-    background: rgba(40, 42, 54, 0.92);   /* #282a36 */
+    background: rgba(40, 42, 54, 0.94);   /* #282a36 */
     color: #f8f8f2;
-}
-
-/* Tooltips Dracula */
-tooltip {
-    background: rgba(40, 42, 54, 0.98);
-    border: 1px solid #a17dd4;
-    border-radius: 10px;
-}
-tooltip label {
-    color: #f8f8f2;
-    padding: 2px 4px;
+    border-bottom: 2px solid #a17dd4;      /* firma Dracula, acento profundo */
 }
 
 /* ---------- Workspaces ---------- */
-#workspaces {
-    margin-left: 6px;
-}
+#workspaces { margin-left: 6px; }
 
 #workspaces button {
-    padding: 0 10px;
-    margin: 5px 3px;
-    border-radius: 9px;
+    padding: 0 6px;
+    margin: 8px 2px 10px 2px;
+    border-radius: 6px;
     color: #6272a4;
     background: transparent;
     transition: all 0.2s ease;
 }
 
 #workspaces button.active {
-    color: #f8f8f2;
-    background: #a17dd4;   /* acento violeta profundo */
+    color: #282a36;
+    background: #a17dd4;
 }
 
 #workspaces button:hover {
     color: #f8f8f2;
-    background: rgba(68, 71, 90, 0.6);    /* #44475a */
+    background: rgba(98, 114, 164, 0.25);
     box-shadow: none;
     text-shadow: none;
 }
@@ -54,59 +43,81 @@ tooltip label {
     margin-left: 8px;
 }
 
-/* ---------- Taskbar (script per-workspace) ---------- */
-#custom-wstaskbar {
-    color: #f8f8f2;
-    margin-left: 6px;
+/* ---------- Taskbar ---------- */
+#taskbar { margin-left: 6px; }
+
+#taskbar button {
+    padding: 0 10px;
+    margin: 6px 2px 8px 2px;
+    border-radius: 7px;
+    color: #6272a4;
+    background: transparent;
+    transition: all 0.2s ease;
 }
 
-/* ---------- Clock (center) ---------- */
+#taskbar button.active {
+    color: #f8f8f2;
+    background: rgba(161, 125, 212, 0.20);
+}
+
+#taskbar button:hover {
+    background: rgba(98, 114, 164, 0.25);
+}
+
+/* ---------- Clock (centro, el único acento fuerte) ---------- */
 #clock {
     color: #f8f8f2;
-    background: rgba(68, 71, 90, 0.35);
-    padding: 0 18px;
-    margin: 5px 0;
-    border-radius: 11px;
+    background: rgba(161, 125, 212, 0.20);
+    padding: 0 16px;
+    margin: 6px 0 8px 0;
+    border-radius: 8px;
     font-weight: bold;
 }
 
-/* ---------- Right modules (base monocroma, píldoras) ---------- */
+/* ---------- Módulos derecha — píldoras monocromas unificadas ---------- */
 #pulseaudio,
 #network,
+#bluetooth,
 #cpu,
 #memory {
-    color: #f8f8f2;                        /* números en blanco */
-    padding: 0 13px;
-    margin: 5px 3px;
-    border-radius: 9px;
-    background: rgba(68, 71, 90, 0.35);
-    transition: background 0.2s ease;
+    color: #f8f8f2;
+    padding: 0 11px;
+    margin: 6px 2px 8px 2px;
+    border-radius: 7px;
+    background: rgba(68, 71, 90, 0.26);
+    transition: background 0.2s ease, color 0.2s ease;
 }
 
 #pulseaudio:hover,
 #network:hover,
+#bluetooth:hover,
 #cpu:hover,
 #memory:hover {
-    background: rgba(68, 71, 90, 0.6);
+    background: rgba(98, 114, 164, 0.35);
 }
 
-#pulseaudio.muted { color: #6272a4; }
+/* Estados idle: se apagan al tono calmo, no desaparecen */
+#pulseaudio.muted,
+#network.disconnected,
+#bluetooth.disabled,
+#bluetooth.off {
+    color: #6272a4;
+}
 
-/* El color entra SOLO como señal de carga, no de decoración */
+/* Estados semánticos: color SOLO cuando comunica algo real */
 #cpu.warning,
-#memory.warning  { color: #f1fa8c; }   /* yellow */
+#memory.warning  { color: #f1fa8c; }   /* amarillo */
 #cpu.critical,
-#memory.critical { color: #ff5555; }   /* red */
+#memory.critical { color: #ff5555; }   /* rojo */
 
+/* ---------- Tray ---------- */
 #tray {
     padding: 0 8px;
-    margin: 5px 2px;
+    margin: 6px 2px 8px 2px;
 }
 
 #tray > .passive { -gtk-icon-effect: dim; }
-#tray > .needs-attention {
-    -gtk-icon-effect: highlight;
-}
+#tray > .needs-attention { -gtk-icon-effect: highlight; }
 
 /* ---------- Launcher / Power ---------- */
 #custom-launcher {
@@ -116,18 +127,30 @@ tooltip label {
     transition: color 0.2s ease;
 }
 #custom-launcher:hover {
-    color: #a17dd4;
+    color: #ff79c6;
 }
 
 #custom-power {
     color: #ff5555;
-    margin: 5px 6px 5px 3px;
-    padding: 0 13px;
-    border-radius: 9px;
-    background: rgba(255, 85, 85, 0.12);
+    font-size: 15px;
+    margin: 6px 8px 8px 2px;
+    padding: 0 12px;
+    border-radius: 7px;
+    background: rgba(255, 85, 85, 0.10);
     transition: all 0.2s ease;
 }
 #custom-power:hover {
     color: #f8f8f2;
     background: #ff5555;
+}
+
+/* ---------- Tooltips a juego (Dracula) ---------- */
+tooltip {
+    background: rgba(40, 42, 54, 0.98);   /* #282a36 casi sólido */
+    border: 1px solid #a17dd4;            /* mismo acento violeta */
+    border-radius: 10px;
+}
+tooltip label {
+    color: #f8f8f2;
+    padding: 2px 4px;
 }
