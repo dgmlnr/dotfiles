@@ -2,6 +2,7 @@
 README.md
 LICENSE
 packages/
+docs/
 
 # Secrets: never manage the machine-local secrets file (created by hand per machine).
 .config/shell/secrets.sh
