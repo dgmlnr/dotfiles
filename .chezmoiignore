@@ -6,10 +6,17 @@ packages/
 # Secrets: never manage the machine-local secrets file (created by hand per machine).
 .config/shell/secrets.sh
 
+# lazysql: its config.toml embeds a DB connection string with a plaintext password,
+# and private_history/ stores query history naming internal databases and tables.
+# Purged from history on 2026-07-19; keep it out for good.
+.config/lazysql/
+
 # Regenerable state that must never be tracked, in case it is ever added by mistake.
 .config/fish/completions/
 .config/fish/generated_completions/
 .config/fish/fish_variables
 .config/fish/__pycache__/
+.config/hypr/scripts/__pycache__/
 .config/nvim/spell/
 .config/zellij/plugins/
+.config/mako/config.bak
