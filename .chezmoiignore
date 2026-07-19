@@ -21,3 +21,19 @@ docs/
 .config/nvim/spell/
 .config/zellij/plugins/
 .config/mako/config.bak
+
+# Remote-access SERVER scripts: only `hexdev` runs wayvnc + Sunshine/Moonlight.
+# On every other host these are dead code that would sit in $HOME referencing
+# services and outputs that do not exist there, so they are never materialised.
+# NOTE: this block matches TARGET paths under .config/hypr/scripts/ only. It must
+# never touch .config/hypr/host/*.conf — BOTH host files have to exist on BOTH
+# machines, because hyprland.conf sources host/<hostname>.conf unconditionally.
+{{ if ne .chezmoi.hostname "hexdev" -}}
+.config/hypr/scripts/vnc-mode-on.sh
+.config/hypr/scripts/vnc-mode-off.sh
+.config/hypr/scripts/vnc-watch.sh
+.config/hypr/scripts/wayvnc-keepalive.sh
+.config/hypr/scripts/moonlight-display.sh
+.config/hypr/scripts/moonlight-watchdog.sh
+.config/hypr/scripts/panic-restore.sh
+{{- end }}

@@ -1,24 +1,29 @@
 #!/usr/bin/env bash
 # Moonlight 1920 mode (Sunshine global_prep_cmd) + persistent virtual display.
 # The mutual-exclusion flag was REMOVED (it caused orphan lock-outs). wayvnc now
-# always runs; during a Moonlight session DP-3 is dpms-off so VNC would be frozen
-# (don't use both at once) — `off` restarts wayvnc to recover.
-#   init : create the headless once, park it off-screen, keep the desktop on DP-3.
-#   on   : move the desktop onto the headless; blank DP-3 (skipped if locked/locking).
-#   off  : move the desktop back to DP-3; wake DP-3; restart wayvnc. Headless STAYS.
+# always runs; during a Moonlight session the panel is dpms-off so VNC would be
+# frozen (don't use both at once) — `off` restarts wayvnc to recover.
+#   init : create the headless once, park it off-screen, keep the desktop on the panel.
+#   on   : move the desktop onto the headless; blank the panel (skipped if locked/locking).
+#   off  : move the desktop back to the panel; wake it; restart wayvnc. Headless STAYS.
 # RULES: DPMS only, never monitor,disable. Never create/destroy/dpms-off an output under lock.
+#
+# HOST SCOPE: this is a hexdev-only script (it is the Sunshine global_prep_cmd on the
+# remote-access server). The panel is still detected rather than hardcoded so it
+# survives a port change on that box and cannot silently no-op if DP-3 is renamed.
 set -uo pipefail
 
-if [ -z "${HYPRLAND_INSTANCE_SIGNATURE:-}" ]; then
-    RT="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
-    for d in "$RT"/hypr/*/; do [ -d "$d" ] && sig="$(basename "$d")"; done
-    export HYPRLAND_INSTANCE_SIGNATURE="${sig:-}"
-fi
+# shellcheck source=lib-monitors.sh
+. "$(dirname "${BASH_SOURCE[0]}")/lib-monitors.sh"
 
 HL="moonlight"
 RES="1920x1080@60"
 POS="3000x0"
-PHYS="DP-3"
+
+# Physical panel, detected at runtime. The detector excludes headless outputs by
+# their empty EDID fields, so "$HL" below can never be picked as the panel even
+# though its name looks nothing like HEADLESS-N.
+PHYS="$(hypr_primary_monitor_or_die "moonlight-display")" || exit 1
 LOCKING="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/hyprlock-starting"
 # Set while a Moonlight session is engaged (desktop on the headless, DP-3 hidden).
 # Read by panic-restore.sh and vnc-mode-off.sh to keep the physical panel hidden

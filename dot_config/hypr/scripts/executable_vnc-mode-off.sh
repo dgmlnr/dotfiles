@@ -6,17 +6,14 @@
 # headless, so wayvnc is never capturing an output we then destroy.
 #
 # Self-healing: works even if the state files are missing (e.g. an unclean VNC
-# drop). It falls back to DP-3 and sweeps every headless output, so the local
-# screen always comes back.
+# drop). It falls back to the detected physical panel and sweeps every headless
+# output, so the local screen always comes back.
 set -uo pipefail
 
-# Ensure hyprctl finds the Hyprland instance even when launched without the env
-# (SSH, manual run, the SUPER+CTRL+SHIFT+P panic bind from odd contexts). One instance = one dir.
-if [ -z "${HYPRLAND_INSTANCE_SIGNATURE:-}" ]; then
-    RT="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
-    for d in "$RT"/hypr/*/; do [ -d "$d" ] && sig="$(basename "$d")"; done
-    export HYPRLAND_INSTANCE_SIGNATURE="${sig:-}"
-fi
+# Hyprland instance discovery (so this works from SSH, a manual run, or the
+# SUPER+CTRL+SHIFT+P panic bind) plus the physical-panel detector.
+# shellcheck source=lib-monitors.sh
+. "$(dirname "${BASH_SOURCE[0]}")/lib-monitors.sh"
 
 # RDP-hide guard: if a Moonlight stream is genuinely live, a VNC teardown must NOT
 # wake DP-3 or move the desktop back to it — that would expose the remote session on
@@ -30,9 +27,16 @@ fi
 
 STATE_DIR="${XDG_RUNTIME_DIR:-/tmp}/vnc-mode"
 
+# Prefer the output vnc-mode-on recorded; if that state is gone (unclean drop),
+# fall back to detecting the panel instead of assuming DP-3, which does not exist
+# on every host.
 PHYS=$(cat "$STATE_DIR/phys" 2>/dev/null)
 HL=$(cat "$STATE_DIR/headless" 2>/dev/null)
-[ -z "$PHYS" ] && PHYS="DP-3"
+[ -z "$PHYS" ] && PHYS="$(hypr_primary_monitor)"
+if [ -z "$PHYS" ]; then
+    echo "vnc-mode-off: no physical monitor found" >&2
+    exit 1
+fi
 
 # Wake the physical panel back up.
 hyprctl dispatch dpms on "$PHYS"

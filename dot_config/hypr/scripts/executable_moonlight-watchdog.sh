@@ -25,18 +25,22 @@ set -uo pipefail
 SCRIPTS="$HOME/.config/hypr/scripts"
 DISPLAY_SH="$SCRIPTS/moonlight-display.sh"
 HL="moonlight"          # headless output name (matches moonlight-display.sh)
-PHYS="DP-3"             # physical panel
 RT="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
 MOON_FLAG="$RT/moonlight-active"
 LOCKING="$RT/hyprlock-starting"
 INTERVAL="${MOONWD_INTERVAL:-20}"       # seconds between checks
 CONFIRM_TICKS="${MOONWD_CONFIRM:-2}"    # consecutive idle checks before acting
 
-# Hyprland env discovery: a systemd --user unit has no HYPRLAND_INSTANCE_SIGNATURE.
-if [ -z "${HYPRLAND_INSTANCE_SIGNATURE:-}" ]; then
-    for d in "$RT"/hypr/*/; do [ -d "$d" ] && sig="$(basename "$d")"; done
-    export HYPRLAND_INSTANCE_SIGNATURE="${sig:-}"
-fi
+# Hyprland env discovery (a systemd --user unit has no HYPRLAND_INSTANCE_SIGNATURE)
+# plus the physical-panel detector.
+# shellcheck source=lib-monitors.sh
+. "$(dirname "${BASH_SOURCE[0]}")/lib-monitors.sh"
+
+# Physical panel. Re-resolved every cycle rather than captured once at startup:
+# this is a long-running daemon that outlives monitor hotplugs and Hyprland
+# restarts, so a name pinned at boot could go stale and make the panel-blanked
+# check silently match nothing forever.
+PHYS=""
 
 log() { printf '[moonlight-watchdog] %s\n' "$*" >&2; }
 
@@ -58,7 +62,9 @@ anomalies() {
         echo "headless-holds-physical-ws"
     fi
     # Panel blanked (dpms off) while idle — the user can't see anything locally.
-    if printf '%s' "$mons" | jq -e --arg p "$PHYS" \
+    # Guarded on a non-empty $PHYS so a failed detection degrades to "can't tell"
+    # instead of matching a monitor whose name is the empty string.
+    if [ -n "$PHYS" ] && printf '%s' "$mons" | jq -e --arg p "$PHYS" \
         'any(.[]; .name==$p and (.dpmsStatus==false))' >/dev/null 2>&1; then
         echo "panel-blanked"
     fi
@@ -69,6 +75,8 @@ anomalies() {
 # Run one cycle. With $1=act, apply the correction; otherwise dry-run (print only).
 cycle() {
     local act="${1:-}"
+    # Refresh the panel name each cycle (hotplug / Hyprland restart safe).
+    PHYS="$(hypr_primary_monitor)"
     if stream_live; then
         [ "$act" = act ] && idle_count=0
         [ "$act" != act ] && log "verdict: STREAM LIVE (sunshine UDP present) — would not act"

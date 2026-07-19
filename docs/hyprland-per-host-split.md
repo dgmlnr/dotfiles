@@ -1,6 +1,7 @@
 # Hyprland per-host split — execution plan
 
-Status: **planned, not executed**. Written 2026-07-19.
+Status: **executed** on 2026-07-19. Kept as the rationale record for the split;
+the current state of the repo is described in `README.md`.
 
 Machines sharing this repo:
 

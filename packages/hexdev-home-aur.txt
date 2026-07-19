@@ -1,0 +1,5 @@
+google-chrome
+onlyoffice-bin
+overskride
+ttf-ms-fonts
+visual-studio-code-bin

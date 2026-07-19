@@ -3,7 +3,10 @@
 # sleeps with an unlocked session.
 set -u
 SCRIPTS="$HOME/.config/hypr/scripts"
-"$SCRIPTS/moonlight-display.sh" off
+# Moonlight teardown is remote-access SERVER only (hexdev). On client machines
+# .chezmoiignore never materialises moonlight-display.sh, so guard the call —
+# otherwise every suspend on the laptop prints "No such file or directory".
+[ -x "$SCRIPTS/moonlight-display.sh" ] && "$SCRIPTS/moonlight-display.sh" off
 "$SCRIPTS/lock.sh" &
 for _ in $(seq 1 50); do pgrep -x hyprlock >/dev/null && break; sleep 0.1; done
 

@@ -2,18 +2,20 @@
 # │ Hyprland config — surgical setup (pairs with Gentleman.Dots)  │
 # │ Docs: https://wiki.hyprland.org/Configuring/                  │
 # └─────────────────────────────────────────────────────────────┘
+#
+# COMMON CORE. Everything here must be true on EVERY machine that shares this
+# repo. Anything hardware-, output- or role-specific belongs in the per-host
+# file sourced at the very bottom — this file has exactly ONE templated line,
+# so a mistake has a blast radius of one statement instead of 300.
 
 ###################
 ### MONITORS    ###
 ###################
 # name, resolution, position, scale. "preferred,auto,1" autodetects.
+# KEEP THIS FIRST and keep it here: it is the only thing that gives an
+# unrecognised machine (or a host file that failed to load) a usable output.
+# Per-host monitor lines are sourced at the bottom and override this.
 monitor = , preferred, auto, 1
-# Pin the physical panel at the origin so the moonlight headless (at 3000x0) keeps
-# a real gap (1600..3000) -> cursor cannot wander into the capture area.
-monitor = DP-3, preferred, 0x0, 1
-# Persistent position for the Moonlight headless: keep it far off-screen (gap from
-# DP-3's 0..1600 makes the cursor unable to wander in). Overrides the catch-all above.
-monitor = moonlight, 1920x1080@60, 3000x0, 1
 
 ###################
 ### PROGRAMS    ###
@@ -28,15 +30,6 @@ $menu = wofi --show drun
 # Propagate Wayland env to systemd/dbus so portals + the polkit agent work.
 exec-once = dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP
 
-# Lock the session immediately on start. Pairs with LightDM autologin: the
-# password gate becomes hyprlock (reachable locally AND over VNC), so a reboot
-# leaves the machine locked-but-VNC-reachable instead of stuck at the greeter.
-#
-# The persistent Moonlight headless MUST be created BEFORE hyprlock locks (creating
-# an output under an active lock crashes hyprlock), and exec-once does not await
-# completion — so chain them in ONE command to guarantee order: init, THEN lock.
-exec-once = bash -c '/home/<user>/.config/hypr/scripts/moonlight-display.sh init; hyprlock'
-
 # Authentication agent (graphical password prompts)
 exec-once = systemctl --user start hyprpolkitagent
 
@@ -48,72 +41,22 @@ exec-once = mako
 # exec-once = nm-applet --indicator
 # KeePassXC: vault + system Secret Service (org.freedesktop.secrets) + ssh-agent.
 exec-once = keepassxc
-# KWallet (KF6): credential store for KDE apps that don't speak Secret Service.
-# Smb4K stores SMB share passwords here (it talks to org.kde.kwalletd6, not
-# org.freedesktop.secrets), so KeePassXC can't cover it. Dbus-activates on demand
-# too, but starting it explicitly keeps the unlock predictable at session start.
-exec-once = kwalletd6
-# hypridle disabled on purpose: no idle timeout (no auto-lock, no screen-off).
-# Manual lock is still available via SUPER+L. Re-enable by uncommenting.
-# exec-once = hypridle
-
-# Remote desktop (VNC) — shares the live Hyprland session. Listens on :5900
-# with TLS + password auth (see ~/.config/wayvnc/config). Reach it over the VPN.
-# No --render-cursor: TigerVNC draws the cursor natively via the RFB cursor
-# pseudo-encoding. Adding --render-cursor ALSO bakes a cursor into the frame,
-# which stacks a second (black-box) cursor on top. Hardware cursors keep the
-# pointer out of the captured framebuffer so only the client-drawn one shows.
-# wayvnc-keepalive: respawns wayvnc if it ever dies (so 5900 never stays down and
-# you can't reconnect), logging to ~/.local/state/wayvnc.log. Run as a systemd user
-# service (Restart=always) so the SUPERVISOR itself is supervised — we only kick it
-# off here because graphical-session.target is inactive on this non-uwsm session.
-exec-once = systemctl --user start wayvnc-keepalive.service
-
-# Sunshine (Moonlight host): same reason as wayvnc above — the service is
-# WantedBy=graphical-session.target, but that target is inactive on this non-uwsm
-# session, so it never auto-starts. Kick it off explicitly here.
-exec-once = systemctl --user start app-dev.lizardbyte.app.Sunshine.service
-
-# Moonlight display watchdog: same non-uwsm reason as above. Self-heals a stuck
-# LOCAL baseline — if no stream is live (zero sunshine UDP) yet the headless is
-# holding a physical workspace (1..10), the panel is blanked, or a stale
-# moonlight-active flag lingers, it re-asserts baseline via moonlight-display.sh
-# off. Confirms idle for 2 ticks before acting; never touches outputs under lock.
-exec-once = systemctl --user start moonlight-watchdog.service
-
-# VNC display-mode watcher: on connect, swaps to a virtual 1920x1080 output and
-# blanks the physical 1600x900 panel; on disconnect, restores DP-3 (see the
-# vnc-mode-*.sh scripts). Panic restore: SUPER+CTRL+SHIFT+P.
-#
-# DISABLED 10-jun-2026: wayvnc v0.10 capturing a HEADLESS output gets stuck in
-# "Pausing frame capture" after the DPMS toggle -> frozen VNC. So VNC now serves
-# DP-3 directly at 1600x900 (reliable). Moonlight is the primary remote path.
-# Re-enable only after wayvnc is upgraded past v0.10 and headless capture is
-# re-tested. To re-enable: uncomment the line below.
-# exec-once = /home/<user>/.config/hypr/scripts/vnc-watch.sh
-
-# Always-on Remote Control Claude session: reachable from the phone via the
-# claude.ai cloud (no VPN needed). Lives hidden in the scratchpad (window rule
-# above). Uses bypass permissions per settings.json defaultMode.
-exec-once = ghostty --class=com.claude.remote -e /home/<user>/.config/hypr/scripts/claude-remote.sh
 
 # Clipboard history (text + images)
 exec-once = wl-paste --type text --watch cliphist store
 exec-once = wl-paste --type image --watch cliphist store
 
-# Thunderbird: autostart into its own workspace 10 (see the windowrule below).
-exec-once = thunderbird
+# NOTE: session lock (hyprlock), hypridle, kwalletd6, the always-on Claude
+# session and any remote-desktop server live in the per-host file — they differ
+# in form or must not exist at all on some hosts.
 
 #############################
 ### ENVIRONMENT VARIABLES ###
 #############################
-# AMD Polaris (RX 470/580) + aquamarine: disable GBM modifiers to fix
-# "GBM: Allocating with modifiers failed" / black screen / page-flip errors.
-env = AQ_NO_MODIFIERS,1
-
-# A real cursor theme MUST be set: with the unset "default" theme, Hyprland's
+# A real cursor theme MUST be set. With the unset "default" theme, Hyprland's
 # built-in fallback cursor can't be captured by wayvnc and shows as a black box
-# over VNC. Adwaita is a complete xcursor theme.
+# over VNC — and even with no VNC in play, an unset theme can fall back to a
+# broken/box glyph. Adwaita is a complete xcursor theme.
 env = XCURSOR_THEME,Adwaita
 env = XCURSOR_SIZE,24
 env = HYPRCURSOR_SIZE,24
@@ -122,6 +65,10 @@ env = HYPRCURSOR_SIZE,24
 # Esto rompe las tildes (´ + vocal) en apps GTK4 como Ghostty. "simple" restaura
 # la composición estilo X11 sin instalar ibus/fcitx. Aplica a terminales nuevas.
 env = GTK_IM_MODULE,simple
+
+# NOTE: AQ_NO_MODIFIERS is deliberately NOT here. It is an AMD Polaris +
+# aquamarine workaround; on Intel i915 it forces linear buffers and loses
+# compression/tiling. It lives in the host file that needs it.
 
 #####################
 ### LOOK AND FEEL ###
@@ -184,10 +131,10 @@ input {
 }
 
 cursor {
-    # Keep hardware cursors: software cursors leave a black-box artifact over VNC
-    # on this AMD Polaris GPU. The remote pointer is instead handled by wayvnc's
-    # --render-cursor (it overlays a single cursor into the VNC stream). See the
-    # wayvnc exec-once below.
+    # Keep hardware cursors (false = use them, the sane default). On the AMD
+    # Polaris box this is load-bearing: software cursors leave a black-box
+    # artifact over VNC, and the remote pointer is drawn by the VNC client
+    # instead. Hardware cursors keep the pointer out of the captured framebuffer.
     no_hardware_cursors = false
 }
 
@@ -206,8 +153,6 @@ bindd = $mainMod, V, Alternar ventana flotante o en mosaico, togglefloating,
 bindd = $mainMod, R, Abrir lanzador de aplicaciones, exec, $menu
 bindd = $mainMod, F, Pantalla completa, fullscreen,
 bindd = $mainMod, Escape, Bloquear pantalla, exec, pidof hyprlock || /home/<user>/.config/hypr/scripts/lock.sh
-# Panic: force-restore the physical panel if a VNC drop left it blanked.
-bindd = $mainMod CTRL SHIFT, P, Restaurar pantalla física (pánico VNC), exec, $HOME/.config/hypr/scripts/panic-restore.sh
 
 # Keybind cheatsheet overlay (searchable list of all binds)
 # Movido a G (K ahora = foco-arriba en hjkl). Letra, no necesita Shift en latam.
@@ -256,9 +201,10 @@ bindd = $mainMod SHIFT, 0, Mover ventana al escritorio 10, movetoworkspace, 10
 
 # Scroll through workspaces with mainMod + scroll.
 # m+1/m-1 (monitor-relative) instead of e+1/e-1 (global): keeps cycling WITHIN the
-# current monitor, so scrolling can never jump focus to DP-3 — which during a
-# Moonlight session is dpms-off and would kill the Sunshine stream. m+1 also won't
-# overshoot onto another monitor's/new empty workspace.
+# current monitor and won't overshoot onto another monitor's/new empty workspace.
+# On the remote-server host this is also a safety property: scrolling can never
+# jump focus to the physical panel, which during a Moonlight session is dpms-off
+# and would kill the stream.
 bindd = $mainMod, mouse_down, Ir al escritorio siguiente (rueda del mouse), workspace, m+1
 bindd = $mainMod, mouse_up, Ir al escritorio anterior (rueda del mouse), workspace, m-1
 
@@ -287,15 +233,23 @@ binddl = , XF86AudioMute, Silenciar o activar el audio, exec, wpctl set-mute @DE
 binddel = , XF86MonBrightnessUp, Subir brillo de pantalla, exec, brightnessctl set 5%+
 binddel = , XF86MonBrightnessDown, Bajar brillo de pantalla, exec, brightnessctl set 5%-
 
-# ── Passthrough para sesiones remotas / VMs ─────────────────────────────────
-# Dentro de una sesión RDP/VNC, Hyprland atrapa SUS atajos (SUPER+…, Print) antes
-# que el remoto. Passthrough los suspende y manda TODAS las teclas (incluida la
-# tecla Win/SUPER) a la ventana enfocada. SUPER+P entra y sale.
-bindd = $mainMod, P, Passthrough ON/OFF (teclas → sesión remota), submap, passthrough
-bind  = $mainMod, P, exec, notify-send -t 1500 -h string:x-canonical-private-synchronous:passthrough "⌨ Passthrough ON" "Todas las teclas → sesión remota.  SUPER+P para salir."
+# ── Passthrough para escritorio remoto / sesiones remotas / VMs ─────────────
+# En Wayland, el compositor LOCAL captura los binds globales antes que la app,
+# asi que los combos SUPER+* se los come esta maquina en vez de viajar al host
+# remoto. Este submap silencia TODOS los binds locales y manda el teclado entero
+# a la ventana enfocada (Moonlight/VNC -> host remoto). SUPER+SHIFT+Escape entra
+# y sale. El combo de salida de Moonlight (Ctrl+Alt+Shift+Q) sigue funcionando
+# adentro.
+#
+# Shared on purpose: this is the CLIENT half of the remote-desktop pair, so it
+# matters most on the laptop, but it is harmless (and occasionally useful) on
+# the server. Bound to SUPER+SHIFT+Escape rather than SUPER+P so that SUPER+P
+# stays free for the per-host display selector.
+bindd = $mainMod SHIFT, Escape, Passthrough remoto (Moonlight): activar / salir, submap, passthrough
+bind = $mainMod SHIFT, Escape, exec, notify-send "Passthrough ON" "Atajos locales OFF — van a la PC remota"
 submap = passthrough
-bind = $mainMod, P, submap, reset
-bind = $mainMod, P, exec, notify-send -t 1500 -h string:x-canonical-private-synchronous:passthrough "⌨ Passthrough OFF" "Atajos de Hyprland normales otra vez."
+bind = $mainMod SHIFT, Escape, submap, reset
+bind = $mainMod SHIFT, Escape, exec, notify-send "Passthrough OFF" "Atajos locales restaurados"
 submap = reset
 
 ##############################
@@ -318,13 +272,28 @@ windowrule = match:class blueman-manager, float on
 windowrule = match:class org.gnome.Calculator, float on
 
 # gsimplecal: clock popup, float and drop centered just below the bar (under the cursor click).
+# NOTE: 775 46 is a pixel offset derived from a 1920-wide primary output with a
+# 44px bar. It lands off-centre on a primary of any other width; move this line
+# into the host files if a host's primary stops being 1920 wide.
 windowrule = match:class gsimplecal, float on
 windowrule = match:class gsimplecal, move 775 46
 
 # Auto-started remote-control Claude session lives in its OWN hidden special
 # workspace (separate from the SUPER+S scratchpad, so it never shows up there).
 # To peek at it locally: hyprctl dispatch togglespecialworkspace claude
+# The rule is shared; the autostart that produces the window is per-host,
+# because the two hosts launch that session by different mechanisms.
 windowrule = match:class com.claude.remote, workspace special:claude silent
 
 # Thunderbird lives on workspace 10. silent = opens there without pulling focus.
+# Shared: the rule is harmless with no Thunderbird running, and it keeps manual
+# launches consistent. Only the autostart is per-host.
 windowrule = match:class org.mozilla.Thunderbird, workspace 10 silent
+
+##############################
+### PER-HOST OVERRIDES      ###
+##############################
+# The ONLY templated line in this file. Everything hardware-, output- or
+# role-specific lives in the host file and is sourced LAST so it can override
+# the catch-all monitor line and add host-only binds, env and services.
+source = ~/.config/hypr/host/{{ .chezmoi.hostname }}.conf

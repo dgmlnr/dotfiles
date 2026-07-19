@@ -12,13 +12,10 @@
 # the headless BEFORE touching the physical panel.
 set -uo pipefail
 
-# Ensure hyprctl finds the Hyprland instance even when launched without the env
-# (SSH, manual run, a watcher started outside the session). One instance = one dir.
-if [ -z "${HYPRLAND_INSTANCE_SIGNATURE:-}" ]; then
-    RT="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
-    for d in "$RT"/hypr/*/; do [ -d "$d" ] && sig="$(basename "$d")"; done
-    export HYPRLAND_INSTANCE_SIGNATURE="${sig:-}"
-fi
+# Hyprland instance discovery (so this works from SSH, a manual run, or a watcher
+# started outside the session) plus the physical-panel detector.
+# shellcheck source=lib-monitors.sh
+. "$(dirname "${BASH_SOURCE[0]}")/lib-monitors.sh"
 
 STATE_DIR="${XDG_RUNTIME_DIR:-/tmp}/vnc-mode"
 mkdir -p "$STATE_DIR"
@@ -29,11 +26,11 @@ mkdir -p "$STATE_DIR"
 VNC_RES="1920x1080@60"
 
 # Physical monitor = the active, non-headless output we're currently driving.
-PHYS=$(hyprctl monitors -j | jq -r '.[] | select(.name | startswith("HEADLESS") | not) | .name' | head -1)
-if [ -z "$PHYS" ]; then
-    echo "vnc-mode-on: no physical monitor found" >&2
-    exit 1
-fi
+# This used to filter on `startswith("HEADLESS") | not`, which let hexdev's
+# custom-named "moonlight" headless through and could pick it as the "physical"
+# panel. The shared detector matches on empty EDID fields instead, so it is
+# immune to whatever a headless output happens to be called.
+PHYS="$(hypr_primary_monitor_or_die "vnc-mode-on")" || exit 1
 
 # Remember the workspace the user is actually looking at. Creating the headless
 # spawns a fresh empty workspace and focus lands there, so we restore this one

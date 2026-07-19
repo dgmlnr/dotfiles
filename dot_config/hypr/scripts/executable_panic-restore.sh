@@ -3,21 +3,19 @@
 #
 # Behaviour:
 #   - Single press while a Moonlight stream is GENUINELY live -> re-assert the
-#     remote hide (DP-3 stays off+empty). Prevents an accidental press from
+#     remote hide (the panel stays off+empty). Prevents an accidental press from
 #     exposing the remote session on the physical panel (the 14-jun incident).
 #   - Double press within 3s -> force a full LOCAL restore, overriding the guard
 #     ("I'm physically here, give me the panel NOW", even if a flag is stale).
 #   - No live remote -> full LOCAL restore: vnc-mode-off (sweeps VNC HEADLESS-*,
-#     dpms on DP-3), moonlight off (desktop back to DP-3), wake DP-3.
+#     wakes the panel), moonlight off (desktop back to the panel), wake the panel.
 # "Genuinely live" = MOON_FLAG present AND sunshine running, so a stale flag can
 # never lock the user out of the local panel.
 set -uo pipefail
 
-if [ -z "${HYPRLAND_INSTANCE_SIGNATURE:-}" ]; then
-    RT="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
-    for d in "$RT"/hypr/*/; do [ -d "$d" ] && sig="$(basename "$d")"; done
-    export HYPRLAND_INSTANCE_SIGNATURE="${sig:-}"
-fi
+# Hyprland instance discovery plus the physical-panel detector.
+# shellcheck source=lib-monitors.sh
+. "$(dirname "${BASH_SOURCE[0]}")/lib-monitors.sh"
 
 SCRIPTS="$HOME/.config/hypr/scripts"
 RT="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
@@ -42,8 +40,20 @@ if [ "$double_tap" -eq 0 ] && moonlight_live; then
 fi
 
 # No live remote (or a deliberate double-tap): full LOCAL restore.
-rm -f "$MOON_FLAG"                    # clear so the teardowns run fully and DP-3 wakes
-"$SCRIPTS/vnc-mode-off.sh"            # VNC teardown: sweeps HEADLESS-*, dpms on DP-3
-"$SCRIPTS/moonlight-display.sh" off   # moonlight teardown: desktop back to DP-3, restart wayvnc
-hyprctl dispatch dpms on DP-3         # belt: ensure the physical panel is awake
+rm -f "$MOON_FLAG"                    # clear so the teardowns run fully and the panel wakes
+"$SCRIPTS/vnc-mode-off.sh"            # VNC teardown: sweeps HEADLESS-*, wakes the panel
+"$SCRIPTS/moonlight-display.sh" off   # moonlight teardown: desktop back to the panel, restart wayvnc
+
+# Belt: ensure the physical panel is awake. This is the "I am standing here and I
+# want my screen back" path, so it wakes EVERY real output rather than just the
+# primary — on a two-panel host, restoring only one of them is still a broken desk.
+# If detection comes back empty we fall back to a bare `dpms on`, which targets all
+# outputs: waking a headless too is harmless, and having no screen at all is not.
+MONS="$(hypr_physical_monitors)"
+if [ -n "$MONS" ]; then
+    for m in $MONS; do hyprctl dispatch dpms on "$m"; done
+else
+    hyprctl dispatch dpms on
+fi
+
 rm -f "$STAMP"                        # reset double-tap clock so a later unrelated press starts fresh
