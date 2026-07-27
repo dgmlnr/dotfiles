@@ -1,0 +1,378 @@
+-- ┌─────────────────────────────────────────────────────────────┐
+-- │ Hyprland config — surgical setup (pairs with Gentleman.Dots)  │
+-- │ Docs: https://wiki.hypr.land/Configuring/                     │
+-- └─────────────────────────────────────────────────────────────┘
+--
+-- COMMON CORE. Everything here must be true on EVERY machine that shares this
+-- repo. Anything hardware-, output- or role-specific belongs in the per-host
+-- file required at the very bottom — this file has exactly ONE templated line,
+-- so a mistake has a blast radius of one statement instead of 300.
+--
+-- Migrated from hyprland.conf: the .conf format is removed in Hyprland 0.57.
+-- The old .conf is kept alongside as a fallback: delete this file and Hyprland
+-- falls straight back to it.
+
+---------------------
+---- MONITORS    ----
+---------------------
+-- output, mode, position, scale. preferred/auto autodetects.
+-- KEEP THIS FIRST and keep it here: it is the only thing that gives an
+-- unrecognised machine (or a host file that failed to load) a usable output.
+-- Per-host monitor lines are required at the bottom and override this.
+hl.monitor({
+    output   = "",
+    mode     = "preferred",
+    position = "auto",
+    scale    = 1,
+})
+
+---------------------
+---- PROGRAMS    ----
+---------------------
+local terminal    = "env GTK_IM_MODULE=simple ghostty"
+local fileManager = "nemo"
+local menu        = "wofi --show drun"
+local mainMod     = "SUPER"
+
+---------------------
+---- AUTOSTART   ----
+---------------------
+hl.on("hyprland.start", function()
+    -- Propagate Wayland env to systemd/dbus so portals + the polkit agent work.
+    -- Pinned to /usr/bin on purpose: a bare name resolves to the Homebrew copy, which
+    -- would leave this line — and therefore portals and the polkit agent — broken on a
+    -- machine without Homebrew on PATH. That is a far worse failure than a dead keybind.
+    hl.exec_cmd("/usr/bin/dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP")
+
+    -- Authentication agent (graphical password prompts)
+    hl.exec_cmd("systemctl --user start hyprpolkitagent")
+
+    -- Bar, wallpaper, notifications, idle daemon
+    hl.exec_cmd("waybar")
+    hl.exec_cmd(os.getenv("HOME") .. "/.config/hypr/scripts/wallpaper.sh")
+    hl.exec_cmd("mako")
+    -- nm-applet disabled: Waybar `network` module is now the clickable network menu (network-menu.sh)
+    -- KeePassXC: vault + system Secret Service (org.freedesktop.secrets) + ssh-agent.
+    hl.exec_cmd("keepassxc")
+
+    -- Clipboard history (text + images)
+    hl.exec_cmd("wl-paste --type text --watch cliphist store")
+    hl.exec_cmd("wl-paste --type image --watch cliphist store")
+end)
+
+-- NOTE: session lock (hyprlock), hypridle, kwalletd6, the always-on Claude
+-- session and any remote-desktop server live in the per-host file — they differ
+-- in form or must not exist at all on some hosts.
+
+-------------------------------
+---- ENVIRONMENT VARIABLES ----
+-------------------------------
+-- A real cursor theme MUST be set. With the unset "default" theme, Hyprland's
+-- built-in fallback cursor can't be captured by wayvnc and shows as a black box
+-- over VNC — and even with no VNC in play, an unset theme can fall back to a
+-- broken/box glyph. Adwaita is a complete xcursor theme.
+hl.env("XCURSOR_THEME", "Adwaita")
+hl.env("XCURSOR_SIZE", "24")
+hl.env("HYPRCURSOR_SIZE", "24")
+
+-- GTK 4.20+ dejó de componer dead keys/compose por sí solo en Wayland sin un IME.
+-- Esto rompe las tildes (´ + vocal) en apps GTK4 como Ghostty. "simple" restaura
+-- la composición estilo X11 sin instalar ibus/fcitx. Aplica a terminales nuevas.
+hl.env("GTK_IM_MODULE", "simple")
+
+-- NOTE: AQ_NO_MODIFIERS is deliberately NOT here. It is an AMD Polaris +
+-- aquamarine workaround; on Intel i915 it forces linear buffers and loses
+-- compression/tiling. It lives in the host file that needs it.
+
+-----------------------
+---- LOOK AND FEEL ----
+-----------------------
+hl.config({
+    general = {
+        gaps_in     = 4,
+        gaps_out    = 8,
+        border_size = 2,
+
+        col = {
+            -- Dracula: violet -> pink gradient on the focused window
+            active_border   = { colors = { "rgba(bd93f9ee)", "rgba(ff79c6ee)" }, angle = 45 },
+            inactive_border = "rgba(44475aaa)",
+        },
+
+        resize_on_border = true,
+        layout           = "dwindle",
+    },
+
+    decoration = {
+        rounding         = 8,
+        active_opacity   = 1.0,
+        inactive_opacity = 0.90,
+
+        blur = {
+            enabled = true,
+            size    = 3,
+            passes  = 1,
+        },
+
+        shadow = {
+            enabled      = true,
+            range        = 4,
+            render_power = 3,
+        },
+    },
+
+    animations = {
+        enabled = true,
+    },
+
+    dwindle = {
+        preserve_split = true,
+    },
+
+    misc = {
+        force_default_wallpaper = 0,
+        disable_hyprland_logo   = true,
+    },
+
+    input = {
+        kb_layout          = "latam",
+        numlock_by_default = true,
+        follow_mouse       = 1,
+        sensitivity        = 0,
+
+        touchpad = {
+            natural_scroll = true,
+        },
+    },
+
+    cursor = {
+        -- Keep hardware cursors (false = use them, the sane default). On the AMD
+        -- Polaris box this is load-bearing: software cursors leave a black-box
+        -- artifact over VNC, and the remote pointer is drawn by the VNC client
+        -- instead. Hardware cursors keep the pointer out of the captured framebuffer.
+        no_hardware_cursors = false,
+    },
+})
+
+hl.curve("easeOutQuint", { type = "bezier", points = { { 0.23, 1 }, { 0.32, 1 } } })
+
+hl.animation({ leaf = "windows",    enabled = true, speed = 4, bezier = "easeOutQuint" })
+hl.animation({ leaf = "fade",       enabled = true, speed = 4, bezier = "default" })
+hl.animation({ leaf = "workspaces", enabled = true, speed = 4, bezier = "easeOutQuint" })
+
+---------------------
+---- KEYBINDINGS ----
+---------------------
+
+-- Core
+hl.bind(mainMod .. " + Q", hl.dsp.exec_cmd(terminal), { desc = "Abrir terminal" })
+hl.bind(mainMod .. " + W", hl.dsp.exec_cmd(terminal .. " -e herdr"), { desc = "Abrir Herdr (multiplexor de agentes)" })
+hl.bind(mainMod .. " + C", hl.dsp.window.close(), { desc = "Cerrar ventana activa" })
+-- SUPER+M (Hyprland's stock `exit` bind) removed on purpose: it tore the session
+-- down instantly, with no confirmation, one key away from SUPER+N. Logging out
+-- belongs in the power menu, where it is a deliberate choice. The key stays free
+-- in the core; hexdev-home reuses it for the panel blank (see its host file).
+hl.bind(mainMod .. " + E", hl.dsp.exec_cmd(fileManager), { desc = "Abrir gestor de archivos" })
+hl.bind(mainMod .. " + V", hl.dsp.window.float({ action = "toggle" }), { desc = "Alternar ventana flotante o en mosaico" })
+hl.bind(mainMod .. " + R", hl.dsp.exec_cmd(menu), { desc = "Abrir lanzador de aplicaciones" })
+hl.bind(mainMod .. " + F", hl.dsp.window.fullscreen(), { desc = "Pantalla completa" })
+hl.bind(mainMod .. " + Escape",
+    hl.dsp.exec_cmd("pidof hyprlock || " .. os.getenv("HOME") .. "/.config/hypr/scripts/lock.sh"),
+    { desc = "Bloquear pantalla" })
+
+-- Keybind cheatsheet overlay (searchable list of all binds)
+-- Movido a G (K ahora = foco-arriba en hjkl). Letra, no necesita Shift en latam.
+hl.bind(mainMod .. " + G",
+    hl.dsp.exec_cmd(os.getenv("HOME") .. "/.config/hypr/scripts/keybinds.sh"),
+    { desc = "Ver esta chuleta de atajos" })
+
+-- "Minimize" via scratchpad (special workspace): keeps the app running but hidden.
+-- SUPER+SHIFT+S hides the focused window; SUPER+S toggles the hidden stash on/off.
+hl.bind(mainMod .. " + SHIFT + S",
+    hl.dsp.window.move({ workspace = "special:magic", silent = true }),
+    { desc = "Minimizar ventana (esconder en scratchpad)" })
+hl.bind(mainMod .. " + S", hl.dsp.workspace.toggle_special("magic"),
+    { desc = "Mostrar u ocultar ventanas minimizadas" })
+
+-- Move focus with mainMod + hjkl (vim) — consistente con Ghostty (ALT+hjkl) y nvim
+hl.bind(mainMod .. " + H", hl.dsp.focus({ direction = "left" }),  { desc = "Foco a la ventana de la izquierda" })
+hl.bind(mainMod .. " + J", hl.dsp.focus({ direction = "down" }),  { desc = "Foco a la ventana de abajo" })
+hl.bind(mainMod .. " + K", hl.dsp.focus({ direction = "up" }),    { desc = "Foco a la ventana de arriba" })
+hl.bind(mainMod .. " + L", hl.dsp.focus({ direction = "right" }), { desc = "Foco a la ventana de la derecha" })
+
+-- Move the active window with mainMod + SHIFT + hjkl
+hl.bind(mainMod .. " + SHIFT + H", hl.dsp.window.move({ direction = "left" }),  { desc = "Mover ventana a la izquierda" })
+hl.bind(mainMod .. " + SHIFT + J", hl.dsp.window.move({ direction = "down" }),  { desc = "Mover ventana hacia abajo" })
+hl.bind(mainMod .. " + SHIFT + K", hl.dsp.window.move({ direction = "up" }),    { desc = "Mover ventana hacia arriba" })
+hl.bind(mainMod .. " + SHIFT + L", hl.dsp.window.move({ direction = "right" }), { desc = "Mover ventana a la derecha" })
+
+-- Switch workspaces (mainMod + 1..0) and move the active window (+ SHIFT).
+-- The .conf spelled all twenty out; the loop is the same twenty binds, and the
+-- key/description pairing stays explicit so the cheatsheet reads identically.
+for i = 1, 10 do
+    local key = i % 10 -- 10 maps to key 0
+    hl.bind(mainMod .. " + " .. key, hl.dsp.focus({ workspace = i }),
+        { desc = "Ir al escritorio " .. i })
+    hl.bind(mainMod .. " + SHIFT + " .. key, hl.dsp.window.move({ workspace = i }),
+        { desc = "Mover ventana al escritorio " .. i })
+end
+
+-- Scroll through workspaces with mainMod + scroll.
+-- m+1/m-1 (monitor-relative) instead of e+1/e-1 (global): keeps cycling WITHIN the
+-- current monitor and won't overshoot onto another monitor's/new empty workspace.
+-- On the remote-server host this is also a safety property: scrolling can never
+-- jump focus to the physical panel, which during a Moonlight session is dpms-off
+-- and would kill the stream.
+hl.bind(mainMod .. " + mouse_down", hl.dsp.focus({ workspace = "m+1" }),
+    { desc = "Ir al escritorio siguiente (rueda del mouse)" })
+hl.bind(mainMod .. " + mouse_up", hl.dsp.focus({ workspace = "m-1" }),
+    { desc = "Ir al escritorio anterior (rueda del mouse)" })
+
+-- Move/resize windows with mainMod + LMB/RMB drag
+hl.bind(mainMod .. " + mouse:272", hl.dsp.window.drag(),
+    { desc = "Arrastrar ventana flotante", mouse = true })
+hl.bind(mainMod .. " + mouse:273", hl.dsp.window.resize(),
+    { desc = "Redimensionar ventana flotante", mouse = true })
+
+-- Clipboard history picker
+hl.bind(mainMod .. " + Y",
+    hl.dsp.exec_cmd("cliphist list | wofi --dmenu | cliphist decode | wl-copy"),
+    { desc = "Historial del portapapeles" })
+
+-- Screenshots (grim + slurp). Print = region, SHIFT+Print = full screen
+hl.bind("Print", hl.dsp.exec_cmd('grim -g "$(slurp)" - | wl-copy'), { desc = "Captura de una región" })
+hl.bind("SHIFT + Print", hl.dsp.exec_cmd("grim - | wl-copy"), { desc = "Captura de pantalla completa" })
+
+-- Tune window transparency live (SUPER+SHIFT+scroll). Bake the value you like
+-- into the decoration block to make it permanent.
+hl.bind(mainMod .. " + SHIFT + mouse_up",
+    hl.dsp.exec_cmd(os.getenv("HOME") .. "/.config/hypr/scripts/opacity.sh 0.05"),
+    { desc = "Subir opacidad de la ventana" })
+hl.bind(mainMod .. " + SHIFT + mouse_down",
+    hl.dsp.exec_cmd(os.getenv("HOME") .. "/.config/hypr/scripts/opacity.sh -0.05"),
+    { desc = "Bajar opacidad de la ventana" })
+
+-- Volume (repeats while held)
+hl.bind("XF86AudioRaiseVolume", hl.dsp.exec_cmd("wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%+"),
+    { desc = "Subir volumen", repeating = true, locked = true })
+hl.bind("XF86AudioLowerVolume", hl.dsp.exec_cmd("wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"),
+    { desc = "Bajar volumen", repeating = true, locked = true })
+hl.bind("XF86AudioMute", hl.dsp.exec_cmd("wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"),
+    { desc = "Silenciar o activar el audio", locked = true })
+
+-- Brightness (repeats while held)
+hl.bind("XF86MonBrightnessUp", hl.dsp.exec_cmd("brightnessctl set 5%+"),
+    { desc = "Subir brillo de pantalla", repeating = true, locked = true })
+hl.bind("XF86MonBrightnessDown", hl.dsp.exec_cmd("brightnessctl set 5%-"),
+    { desc = "Bajar brillo de pantalla", repeating = true, locked = true })
+
+-- ── Passthrough para escritorio remoto / sesiones remotas / VMs ─────────────
+-- En Wayland, el compositor LOCAL captura los binds globales antes que la app,
+-- asi que los combos SUPER+* se los come esta maquina en vez de viajar al host
+-- remoto. Este submap silencia TODOS los binds locales y manda el teclado entero
+-- a la ventana enfocada (Moonlight/VNC -> host remoto). SUPER+SHIFT+Escape entra
+-- y sale. El combo de salida de Moonlight (Ctrl+Alt+Shift+Q) sigue funcionando
+-- adentro.
+--
+-- Shared on purpose: this is the CLIENT half of the remote-desktop pair, so it
+-- matters most on the laptop, but it is harmless (and occasionally useful) on
+-- the server. Bound to SUPER+SHIFT+Escape rather than SUPER+P so that SUPER+P
+-- stays free for the per-host display selector.
+hl.bind(mainMod .. " + SHIFT + Escape", hl.dsp.submap("passthrough"),
+    { desc = "Passthrough remoto (Moonlight): activar / salir" })
+hl.bind(mainMod .. " + SHIFT + Escape",
+    hl.dsp.exec_cmd('notify-send "Passthrough ON" "Atajos locales OFF — van a la PC remota"'))
+
+hl.define_submap("passthrough", function()
+    hl.bind(mainMod .. " + SHIFT + Escape", hl.dsp.submap("reset"))
+    hl.bind(mainMod .. " + SHIFT + Escape",
+        hl.dsp.exec_cmd('notify-send "Passthrough OFF" "Atajos locales restaurados"'))
+end)
+
+---------------------
+---- WINDOW RULES ----
+---------------------
+-- Float common dialog/utility windows instead of tiling them.
+-- The three separate pavucontrol lines in the .conf are one rule here: the Lua
+-- form carries every effect for a match in a single call.
+hl.window_rule({
+    name  = "pavucontrol-float",
+    match = { class = "org.pulseaudio.pavucontrol" },
+
+    float  = true,
+    size   = { 720, 520 },
+    center = true,
+})
+
+-- RDM abre sus diálogos (configuración, etc.) flotando pegados arriba, con la
+-- barra de título tapada por waybar. Centrar las ventanas flotantes para que
+-- siempre se puedan agarrar. (center solo afecta a flotantes; la ventana
+-- principal de RDM tilea, así que no se toca.)
+hl.window_rule({
+    name   = "rdm-center",
+    match  = { class = "RemoteDesktopManager" },
+    center = true,
+})
+
+hl.window_rule({
+    name  = "nm-connection-editor-float",
+    match = { class = "nm-connection-editor" },
+    float = true,
+})
+
+hl.window_rule({
+    name  = "blueman-float",
+    match = { class = "blueman-manager" },
+    float = true,
+})
+
+hl.window_rule({
+    name  = "calculator-float",
+    match = { class = "org.gnome.Calculator" },
+    float = true,
+})
+
+-- gsimplecal: clock popup, float and drop centered just below the bar (under the cursor click).
+-- NOTE: 775 46 is a pixel offset derived from a 1920-wide primary output with a
+-- 44px bar. It lands off-centre on a primary of any other width; move this rule
+-- into the host files if a host's primary stops being 1920 wide.
+hl.window_rule({
+    name  = "gsimplecal-popup",
+    match = { class = "gsimplecal" },
+
+    float = true,
+    move  = { 775, 46 },
+})
+
+-- Auto-started remote-control Claude session lives in its OWN hidden special
+-- workspace (separate from the SUPER+S scratchpad, so it never shows up there).
+-- To peek at it locally: hyprctl dispatch togglespecialworkspace claude
+-- The rule is shared; the autostart that produces the window is per-host,
+-- because the two hosts launch that session by different mechanisms.
+-- NOTE: `workspace` takes the whole .conf effect value as one string, modifier
+-- included. Hyprland does not validate this string's contents — garbage parses
+-- fine — so this is the one rule here that static verification cannot prove.
+-- Confirm at runtime: the window must land on the special workspace WITHOUT
+-- stealing focus.
+hl.window_rule({
+    name      = "claude-remote-special",
+    match     = { class = "com.claude.remote" },
+    workspace = "special:claude silent",
+})
+
+-- Thunderbird lives on workspace 10. silent = opens there without pulling focus.
+-- Shared: the rule is harmless with no Thunderbird running, and it keeps manual
+-- launches consistent. Only the autostart is per-host.
+hl.window_rule({
+    name      = "thunderbird-ws10",
+    match     = { class = "org.mozilla.Thunderbird" },
+    workspace = "10 silent",
+})
+
+----------------------------
+---- PER-HOST OVERRIDES ----
+----------------------------
+-- The ONLY templated line in this file. Everything hardware-, output- or
+-- role-specific lives in the host file and is required LAST so it can override
+-- the catch-all monitor line and add host-only binds, env and services.
+require("host.{{ .chezmoi.hostname }}")
