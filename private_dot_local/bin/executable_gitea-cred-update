@@ -5,18 +5,33 @@
 # shell history, or in a process argument list. Every store is silenced and
 # verified separately by presence only.
 #
+# Configuration lives in ~/.config/shell/secrets.sh, which is machine-local and
+# never versioned:
+#
+#   export GITEA_HOST=gitea.example.com
+#   export GITEA_USER=yourname
+#   export GITEA_PROBE_REPO=any-repo   # only used to test that auth works
+#   export GITEA_PEER=hostname         # optional, ssh alias of the other machine
+#
 # Usage: gitea-cred-update
 
 set -uo pipefail
 
-HOST_GITEA="gitea.example.com"
-REMOTE="hexdev"
-HELPER="/usr/lib/git-core/git-credential-libsecret"
-USER_GITEA="<user>"
-
 die() { printf '\033[1;31m✗\033[0m %s\n' "$*" >&2; exit 1; }
 ok()  { printf '\033[1;32m✓\033[0m %s\n' "$*"; }
 info(){ printf '\033[1;36m==>\033[0m %s\n' "$*"; }
+
+[ -f "$HOME/.config/shell/secrets.sh" ] && . "$HOME/.config/shell/secrets.sh"
+
+: "${GITEA_HOST:?falta GITEA_HOST — definilo en ~/.config/shell/secrets.sh}"
+: "${GITEA_USER:?falta GITEA_USER — definilo en ~/.config/shell/secrets.sh}"
+: "${GITEA_PROBE_REPO:?falta GITEA_PROBE_REPO — definilo en ~/.config/shell/secrets.sh}"
+
+HOST_GITEA="$GITEA_HOST"
+USER_GITEA="$GITEA_USER"
+PROBE_REPO="$GITEA_PROBE_REPO"
+REMOTE="${GITEA_PEER:-hexdev}"
+HELPER="/usr/lib/git-core/git-credential-libsecret"
 
 [ -x "$HELPER" ] || die "no encuentro $HELPER"
 
@@ -60,7 +75,7 @@ info "Probando autenticación real contra Gitea"
 
 printf '  %-14s ' "$(hostname):"
 if GIT_TERMINAL_PROMPT=0 timeout 30 git ls-remote \
-     "https://$HOST_GITEA/$USER_GITEA/<probe-repo>.git" HEAD >/dev/null 2>&1; then
+     "https://$HOST_GITEA/$USER_GITEA/$PROBE_REPO.git" HEAD >/dev/null 2>&1; then
     printf '\033[1;32mOK\033[0m\n'
 else
     printf '\033[1;31mFALLA\033[0m — ¿el token nuevo tiene permisos de lectura?\n'
@@ -68,7 +83,7 @@ fi
 
 printf '  %-14s ' "$REMOTE:"
 if ssh -o ConnectTimeout=10 "$REMOTE" \
-     "bash -c 'export XDG_RUNTIME_DIR=/run/user/\$(id -u); GIT_TERMINAL_PROMPT=0 timeout 30 git ls-remote https://$HOST_GITEA/$USER_GITEA/<probe-repo>.git HEAD' " \
+     "bash -c 'export XDG_RUNTIME_DIR=/run/user/\$(id -u); GIT_TERMINAL_PROMPT=0 timeout 30 git ls-remote https://$HOST_GITEA/$USER_GITEA/$PROBE_REPO.git HEAD' " \
      >/dev/null 2>&1; then
     printf '\033[1;32mOK\033[0m\n'
 else

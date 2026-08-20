@@ -30,6 +30,29 @@ printf 'export ENGRAM_CLOUD_TOKEN=%s\n' 'YOUR_TOKEN_HERE' > ~/.config/shell/secr
 chmod 600 ~/.config/shell/secrets.sh
 ```
 
+The `gitea-cred-update` helper reads its target from that same file:
+
+```sh
+export GITEA_HOST=gitea.example.com
+export GITEA_USER=yourname
+export GITEA_PROBE_REPO=any-repo   # only used to verify that auth works
+export GITEA_PEER=other-hostname   # optional, ssh alias of the second machine
+```
+
+## Work identity — never committed
+
+`~/.gitconfig-work` holds a second git identity, applied by `includeIf` to repos
+under `~/repos/gitea/`. It is machine-local and never tracked. Git ignores a
+missing include, so a machine without it simply uses the default identity:
+
+```sh
+cat > ~/.gitconfig-work <<'EOF'
+[user]
+	name = yourname
+	email = you@example.com
+EOF
+```
+
 ## Bootstrap a new machine
 
 ```sh

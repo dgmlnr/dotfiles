@@ -1,0 +1,3 @@
+# Machine-local git identity: name + address, never versioned.
+# chezmoi also ignores it (.chezmoiignore) so it is never materialised from the repo.
+dot_gitconfig-work

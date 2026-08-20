@@ -15,8 +15,8 @@ export PATH="$HOME/.local/bin:$PATH"
 [ -f ~/.config/shell/secrets.sh ] && . ~/.config/shell/secrets.sh
 
 # Engram cloud mode is retired: memories sync through the engram-sync git repo,
-# not a central server. The old ENGRAM_CLOUD_SERVER pointed at <host>,
-# which only resolves on the office LAN, so every autosync from anywhere else
-# hung. Restore these only if the cloud server comes back.
+# not a central server. The old ENGRAM_CLOUD_SERVER pointed at a host that only
+# resolves on one LAN, so every autosync from anywhere else hung. Restore these
+# only if the cloud server comes back.
 
 eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"

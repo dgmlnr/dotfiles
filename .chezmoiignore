@@ -7,6 +7,12 @@ docs/
 # Secrets: never manage the machine-local secrets file (created by hand per machine).
 .config/shell/secrets.sh
 
+# Work identity: a per-machine git identity (name + address) that has no business
+# in a public repo. `.gitconfig` includes it for repos under ~/repos/gitea/; git
+# ignores a missing include, so a machine without it just uses the default
+# identity. Created by hand — see the README.
+.gitconfig-work
+
 # lazysql: its config.toml embeds a DB connection string with a plaintext password,
 # and private_history/ stores query history naming internal databases and tables.
 # Purged from history on 2026-07-19; keep it out for good.
