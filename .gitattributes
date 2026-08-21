@@ -1,0 +1,7 @@
+# Third-party shaders bundled for Ghostty. They are other people's work, kept
+# here only so the terminal finds them; they must not drive the repo's language
+# stats or show up in diffs as if they were part of this configuration.
+dot_config/ghostty/shaders/** linguist-vendored
+
+# Generated keymap graphics.
+keymap-drawer/*.svg linguist-generated
