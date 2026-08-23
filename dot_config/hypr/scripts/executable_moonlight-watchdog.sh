@@ -47,47 +47,112 @@ PHYS=""
 
 log() { printf '[moonlight-watchdog] %s\n' "$*" >&2; }
 
-# True while a Moonlight stream is actually live (any session UDP port bound).
+# Live-stream detection, THREE-VALUED on purpose:
+#   0 = a stream is live
+#   1 = no stream
+#   2 = cannot tell, because the detector itself failed
+#
+# That third value is the entire point. `ss` printing nothing because no session
+# port is bound, and `ss` printing nothing because it is missing or because a
+# future iproute2 rejects this filter syntax, are byte-identical at the shell:
+# empty stdout either way. Collapsing them into "no stream" is what lets a broken
+# detector reach the correction path — during a LIVE session MOON_FLAG is set and
+# the panel is dpms-off, which are two of the three anomalies below, so an
+# unearned "idle" plus those anomalies tears the desktop off the remote after
+# CONFIRM_TICKS. Detecting by port instead of by process name made this detector
+# CORRECT; keeping its own failure distinguishable is what makes it HONEST, and
+# those are separate properties.
 stream_live() {
-    [ -n "$(ss -Huan '( sport = :47998 or sport = :47999 or sport = :48000 )' 2>/dev/null)" ]
+    local out rc
+    out="$(ss -Huan '( sport = :47998 or sport = :47999 or sport = :48000 )' 2>/dev/null)"
+    rc=$?
+    if [ "$rc" -ne 0 ]; then
+        log "stream detector UNAVAILABLE (ss exit $rc) — cannot tell live from idle"
+        return 2
+    fi
+    [ -n "$out" ]
 }
 
 # True while the screen is locked or a lock is starting: do not touch outputs.
 locked() { pgrep -x hyprlock >/dev/null 2>&1 || [ -f "$LOCKING" ]; }
 
-# Emit the list of anomalies found (empty output == healthy). Read-only.
+# jq predicate that keeps "false" and "could not answer" apart.
+#   0 = matched, 1 = did not match, 2 = jq could not evaluate it
+# Without that split, a missing jq or a change in hyprctl's JSON shape reads as
+# "nothing is wrong" forever, which is indistinguishable from a healthy host.
+jq_test() {
+    jq -e "$@" >/dev/null 2>&1
+    case $? in
+        0)   return 0 ;;
+        1|4) return 1 ;;   # false / null / no output: a genuine no-match
+        *)   return 2 ;;   # usage, compile, or runtime error
+    esac
+}
+
+# Emit the list of anomalies found on stdout (empty == healthy).
+# Returns 0 when the inspection actually RAN, non-zero when it could not.
+# Callers must check that status: an inspection that never happened is not a
+# clean bill of health, and silently treating it as one turns this watchdog into
+# a no-op that still reports itself alive.
 anomalies() {
     local mons wss
-    mons="$(hyprctl monitors -j 2>/dev/null)" || return 0
-    wss="$(hyprctl workspaces -j 2>/dev/null)" || return 0
+    mons="$(hyprctl monitors -j 2>/dev/null)" || {
+        log "hyprctl monitors failed — anomaly inspection unavailable"; return 1; }
+    wss="$(hyprctl workspaces -j 2>/dev/null)" || {
+        log "hyprctl workspaces failed — anomaly inspection unavailable"; return 1; }
 
     # Headless holding a physical workspace (1..10) while idle.
-    if printf '%s' "$wss" | jq -e --arg hl "$HL" \
-        '[.[] | select(.monitor==$hl) | select(.id>0 and .id<=10)] | length>0' >/dev/null 2>&1; then
-        echo "headless-holds-physical-ws"
-    fi
+    jq_test --arg hl "$HL" \
+        '[.[] | select(.monitor==$hl) | select(.id>0 and .id<=10)] | length>0' <<<"$wss"
+    case $? in
+        0) echo "headless-holds-physical-ws" ;;
+        2) log "jq could not evaluate the workspace filter — inspection unavailable"; return 1 ;;
+    esac
     # Panel blanked (dpms off) while idle — the user can't see anything locally.
     # Guarded on a non-empty $PHYS so a failed detection degrades to "can't tell"
     # instead of matching a monitor whose name is the empty string.
-    if [ -n "$PHYS" ] && printf '%s' "$mons" | jq -e --arg p "$PHYS" \
-        'any(.[]; .name==$p and (.dpmsStatus==false))' >/dev/null 2>&1; then
-        echo "panel-blanked"
+    if [ -n "$PHYS" ]; then
+        jq_test --arg p "$PHYS" 'any(.[]; .name==$p and (.dpmsStatus==false))' <<<"$mons"
+        case $? in
+            0) echo "panel-blanked" ;;
+            2) log "jq could not evaluate the monitor filter — inspection unavailable"; return 1 ;;
+        esac
     fi
     # Stale session flag while no stream is live.
     [ -f "$MOON_FLAG" ] && echo "stale-moon-flag"
+    # Explicit, and load-bearing now that the caller reads this status: without it
+    # the function returns the test above, so a perfectly healthy host with no
+    # flag would report its inspection as having failed.
+    return 0
 }
 
 # Run one cycle. With $1=act, apply the correction; otherwise dry-run (print only).
 cycle() {
-    local act="${1:-}"
+    local act="${1:-}" found rc
     # Refresh the panel name each cycle (hotplug / Hyprland restart safe).
     PHYS="$(hypr_primary_monitor)"
-    if stream_live; then
+
+    stream_live; rc=$?
+    if [ "$rc" -eq 0 ]; then
         [ "$act" = act ] && idle_count=0
         [ "$act" != act ] && log "verdict: STREAM LIVE (session UDP port bound) — would not act"
         return 0
     fi
-    local found; found="$(anomalies | paste -sd, -)"
+    if [ "$rc" -eq 2 ]; then
+        # Cannot tell. Hold the counter exactly where it is and touch nothing:
+        # the whole hazard this guards is that "unknown" looks like "idle" one
+        # line later, and "idle" is the branch that tears down a live session.
+        log "verdict: UNKNOWN (stream detector unavailable) — holding, no action"
+        return 0
+    fi
+
+    # Read the status, not just the output: a pipeline here would discard it.
+    found="$(anomalies)"; rc=$?
+    if [ "$rc" -ne 0 ]; then
+        log "verdict: UNKNOWN (anomaly inspection unavailable) — holding, no action"
+        return 0
+    fi
+    found="$(printf '%s' "$found" | paste -sd, -)"
     if [ "$act" != act ]; then
         if [ -z "$found" ]; then
             log "verdict: idle, healthy — no action needed"
