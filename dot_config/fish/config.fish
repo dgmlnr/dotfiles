@@ -2,8 +2,25 @@ if status is-interactive
     # Commands to run in interactive sessions can go here
     # Install Fisher if not installed
     if not functions -q fisher
-        curl -sL https://git.io/fisher | source
-        fisher install jorgebucaran/fisher
+        # This was `curl -sL https://git.io/fisher | source`. GitHub retired
+        # git.io in 2022, so that shortlink no longer resolves at all: curl -s
+        # printed nothing, `source` consumed an empty stream, and the next line
+        # died with a confusing "unknown command: fisher" that says nothing about
+        # the download having failed. A bootstrap that fails quietly is worse
+        # than one that fails, so the fetch is checked and reported.
+        #
+        # -f makes curl fail on an HTTP error instead of piping an error page
+        # into the shell, and -S keeps its message instead of swallowing it.
+        set -l fisher_url https://raw.githubusercontent.com/jorgebucaran/fisher/main/functions/fisher.fish
+        set -l fisher_src (curl -fsSL --max-time 20 $fisher_url)
+        set -l fetch_status $status
+        if test $fetch_status -ne 0; or test -z "$fisher_src"
+            echo "fisher bootstrap FAILED (curl exit $fetch_status): $fisher_url" >&2
+            echo "fisher is not installed; install it manually before expecting plugins." >&2
+        else
+            printf '%s\n' $fisher_src | source
+            fisher install jorgebucaran/fisher
+        end
     end
 
 end
