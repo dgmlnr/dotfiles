@@ -14,10 +14,11 @@
 #
 # The previous guard tried to predict readiness with
 #   timeout 5 bash -c 'exec 3<>/dev/tcp/claude.ai/443'
-# That probe cannot succeed on a network where claude.ai advertises an IPv6
-# address that never completes the handshake: the connect only lands after the
-# ~8s fallback to IPv4, so a 5s cap always expires. It burned all 60 iterations
-# (~7 min) and then launched anyway, with no guarantee at all.
+# How that probe behaves depends on the network, which is why it guarded nothing
+# on either host. Where claude.ai resolves to its IPv6 address first the connect
+# only lands after the ~8s fallback to IPv4, so a 5s cap always expires and the
+# loop burns all 60 iterations (~7 min) before launching anyway. Where IPv4 comes
+# first it succeeds immediately and guards nothing a boot-time race can defeat.
 #
 # Predicting when the network is ready is guesswork. Verifying the outcome is not.
 set -u
