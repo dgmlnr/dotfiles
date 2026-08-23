@@ -31,12 +31,25 @@ sudo tee /usr/local/bin/pacman-safety-backup.sh >/dev/null <<'SCRIPT'
 # Level 1 safety net: snapshot package lists + /etc BEFORE every pacman transaction.
 # Runs as root from a PreTransaction hook. It must NEVER fail the transaction,
 # so every step is guarded and the script always exits 0.
+#
+# "Never fail the transaction" and "never report failure" are different
+# requirements, and only the first one is worth having. Every step below still
+# swallows its exit status so pacman is never blocked, but it now says so on
+# stderr, which pacman surfaces in the transaction output. Without that, a full
+# disk or a permissions change produced an empty snapshot in complete silence --
+# indistinguishable from a good one until the day you reach for it to recover.
+warn() { printf 'pacman-safety-backup: %s\n' "$1" >&2; }
+
 dest=/var/backups/pacman
-mkdir -p "$dest" 2>/dev/null || exit 0
-pacman -Qqe > "$dest/pkglist.txt"     2>/dev/null || true  # explicitly installed
-pacman -Qqm > "$dest/pkglist-aur.txt" 2>/dev/null || true  # foreign / AUR
+if ! mkdir -p "$dest" 2>/dev/null; then
+    warn "NO SNAPSHOT TAKEN - cannot create $dest"
+    exit 0
+fi
+pacman -Qqe > "$dest/pkglist.txt"     2>/dev/null || warn "pkglist.txt not written"
+pacman -Qqm > "$dest/pkglist-aur.txt" 2>/dev/null || warn "pkglist-aur.txt not written"
 stamp="$(date +%Y%m%d-%H%M%S)"
-tar czf "$dest/etc-$stamp.tar.gz" -C / etc 2>/dev/null || true
+tar czf "$dest/etc-$stamp.tar.gz" -C / etc 2>/dev/null \
+    || warn "NO /etc SNAPSHOT for $stamp - tar failed (disk full?)"
 # rotation: keep only the 5 most recent /etc snapshots
 ls -1t "$dest"/etc-*.tar.gz 2>/dev/null | tail -n +6 | xargs -r rm -f
 exit 0
