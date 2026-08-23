@@ -1,0 +1,26 @@
+[Unit]
+Description=Always-on Remote-Control Claude session (phone remote anchor)
+After=graphical-session.target
+# No start limit: it must ALWAYS come back, no matter how often it dies. Giving
+# up would lose the phone anchor entirely, which is the exact failure this unit
+# exists to prevent. The spin that a start limit normally guards against is
+# handled by the backoff below instead, so nothing is traded away here.
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+# ghostty hosts the claude TUI; the windowrule pins it to special:claude.
+# When claude exits/dies -> ghostty exits -> service stops -> systemd respawns.
+ExecStart=/usr/bin/ghostty --class=com.claude.remote -e %h/.config/hypr/scripts/claude-remote.sh
+Restart=always
+# Exponential backoff (systemd >= 254). A restart that can succeed still happens
+# in 5s, but a hard failure — ghostty unable to start at all, e.g. no display —
+# stretches toward 5min instead of respawning every 5s forever. The script's own
+# MAX_RESPAWNS bounds a failed BRIDGE; this bounds a failed LAUNCH. Different
+# failures, and until now only one of them was bounded.
+RestartSec=5
+RestartSteps=10
+RestartMaxDelaySec=5min
+
+[Install]
+WantedBy=default.target
