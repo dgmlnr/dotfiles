@@ -24,7 +24,26 @@ case "${1:-}" in
     off)
         # Skip the idle blank entirely while locked (see the header): hyprlock
         # rendering on a panel we blank underneath it is what crashes it.
-        pgrep -x hyprlock >/dev/null && exit 0
+        #
+        # Two independent signals decide this, because a single silent detector
+        # getting it wrong produces exactly the crash the guard exists to prevent.
+        # `pgrep -x` matches on process name and quietly stops matching if the
+        # binary is ever renamed or wrapped; lock.sh's marker file is present for
+        # the whole lock (it touches the file, then hyprlock blocks, and an EXIT
+        # trap clears it). Either signal alone is enough to take the safe branch.
+        LOCK_FLAG="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/hyprlock-starting"
+
+        # If the detector itself cannot run we do not know whether we are locked.
+        # Blanking while locked crashes hyprlock; leaving the panel lit costs
+        # nothing but a lit panel. Fail closed, and say so rather than blanking.
+        if ! command -v pgrep >/dev/null 2>&1; then
+            echo "idle-dpms: pgrep unavailable, cannot tell if locked - not blanking" >&2
+            exit 0
+        fi
+
+        if pgrep -x hyprlock >/dev/null || [ -f "$LOCK_FLAG" ]; then
+            exit 0
+        fi
         for m in $MONS; do hyprctl dispatch dpms off "$m"; done
         ;;
     on)

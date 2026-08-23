@@ -18,6 +18,24 @@ MOON_FLAG="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/moonlight-active"
 # output we woke, even if the layout changed while the session was locked.
 PHYS="$(hypr_primary_monitor)"
 
+# Refuse to stack a second locker. This used to live as `pidof hyprlock || ...`
+# duplicated at both call sites (hyprland.conf's SUPER+Escape bind and
+# hypridle.conf's lock_cmd). It belongs here instead: one copy, and one place
+# where the failure direction is written down.
+#
+# This guard FAILS OPEN, deliberately, and that is the opposite of the one in
+# idle-dpms.sh. There, "cannot tell" must not blank, because blanking under a
+# lock crashes hyprlock. Here, "cannot tell" must still lock: stacking two
+# hyprlocks is ugly, but failing to lock leaves the session open to anyone
+# walking past. So only a positive detection from a detector we know ran stops
+# us -- a missing or broken pgrep falls through and locks.
+#
+# It also has to sit above the touch/trap below: exiting after the trap is armed
+# would delete the FIRST locker's marker on the way out.
+if command -v pgrep >/dev/null 2>&1 && pgrep -x hyprlock >/dev/null 2>&1; then
+    exit 0
+fi
+
 # Marker so moonlight-display.sh 'on' won't dpms-off the panel during the window
 # before hyprlock has grabbed the session lock (that race crashes hyprlock on this AMD).
 touch "$LOCKING"
