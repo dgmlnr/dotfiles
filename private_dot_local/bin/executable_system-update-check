@@ -1,0 +1,103 @@
+#!/bin/sh
+# Report pending system updates once a day. Notify only: nothing is installed.
+#
+# Full upgrades on Arch have to be attended — a kernel update leaves the
+# running kernel without matching modules until reboot, glibc updates are
+# unforgiving if interrupted, and some upgrades require manual steps announced
+# on the Arch news feed. So this only surfaces the state; `yay -Syu` stays a
+# deliberate, human-run command.
+#
+# AUR packages are counted separately because `pacman -Syu` never touches them:
+# they only move when yay is run explicitly.
+
+set -eu
+
+APP_NAME=system-update-check
+
+# systemd user services do not reliably inherit the session bus address, and
+# notify-send fails silently without it.
+export DBUS_SESSION_BUS_ADDRESS="${DBUS_SESSION_BUS_ADDRESS:-unix:path=${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/bus}"
+
+count_lines() {
+	if [ -z "$1" ]; then
+		echo 0
+	else
+		printf '%s\n' "$1" | wc -l
+	fi
+}
+
+# checkupdates syncs into its own temporary database and leaves the real pacman
+# db untouched, which is what makes it safe to run unattended.
+#
+# Both checks below report their own failure instead of swallowing it. They used
+# to be `$(cmd 2>/dev/null || true)`, which made an empty result mean either "no
+# updates pending" or "the checker is broken or missing" -- and both ended in a
+# silent exit. That is the wrong shape for a notifier: its entire job is to break
+# silence, so silence was also exactly what it produced when it stopped working.
+# A transient network failure genuinely is not worth reporting (the next run
+# picks it up), but the same code path swallowed pacman-contrib being uninstalled
+# for good.
+#
+# checkupdates distinguishes its own states: 0 = updates found, 1 = error,
+# 2 = none pending. Use that instead of guessing from empty output.
+broken=""
+
+if ! command -v checkupdates >/dev/null 2>&1; then
+    broken="$broken checkupdates:missing"
+    repo=""
+else
+    # `x=$(cmd) || x_status=$?` is deliberate: under `set -e` a bare assignment
+    # from a failing command substitution aborts the script on the spot, which is
+    # why the original code reached for `|| true`. That guard was load-bearing --
+    # swallowing the status was the collateral damage, not the intent. The `||`
+    # keeps set -e happy while still capturing the code.
+    repo_status=0
+    repo=$(checkupdates 2>/dev/null) || repo_status=$?
+    case $repo_status in
+        0) : ;;                                  # updates found
+        2) repo="" ;;                            # none pending: the honest quiet case
+        *) broken="$broken checkupdates:failed(exit $repo_status)"; repo="" ;;
+    esac
+fi
+
+# yay does not document a distinct "nothing pending" code, so 0 and 1 are both
+# treated as ran-successfully. Anything else, or a missing binary, is breakage.
+if ! command -v yay >/dev/null 2>&1; then
+    broken="$broken yay:missing"
+    aur=""
+else
+    aur_status=0
+    aur=$(yay -Qua 2>/dev/null) || aur_status=$?
+    case $aur_status in
+        0|1) : ;;
+        *)   broken="$broken yay:failed(exit $aur_status)"; aur="" ;;
+    esac
+fi
+
+repo_count=$(count_lines "$repo")
+aur_count=$(count_lines "$aur")
+total=$((repo_count + aur_count))
+
+# Report a broken checker even when nothing is pending. Staying quiet here is the
+# bug this guard exists to prevent: it would look identical to a clean system.
+if [ -n "$broken" ]; then
+    notify-send \
+        --app-name="$APP_NAME" \
+        --urgency=critical \
+        --icon=dialog-warning \
+        "Update check FAILED" \
+        "No pude verificar updates:$broken
+
+Los contadores de abajo estan incompletos."
+fi
+
+[ "$total" -gt 0 ] || exit 0
+
+notify-send \
+	--app-name="$APP_NAME" \
+	--urgency=normal \
+	--icon=system-software-update \
+	"$total pending updates" \
+	"$repo_count official, $aur_count AUR
+
+Run: yay -Syu"

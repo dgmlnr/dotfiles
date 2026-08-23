@@ -1,0 +1,13 @@
+[Unit]
+Description=Daily report of pending system and AUR updates
+
+[Timer]
+# Catch up on the next boot when the machine was off at the scheduled time.
+OnCalendar=daily
+Persistent=true
+RandomizedDelaySec=30m
+# Also check shortly after login, so a long-idle machine reports promptly.
+OnStartupSec=10m
+
+[Install]
+WantedBy=timers.target

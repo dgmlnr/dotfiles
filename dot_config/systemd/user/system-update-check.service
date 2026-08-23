@@ -1,0 +1,8 @@
+[Unit]
+Description=Report pending system and AUR updates
+
+[Service]
+Type=oneshot
+ExecStart=%h/.local/bin/system-update-check
+# checkupdates downloads a temporary package database; allow for a slow link.
+TimeoutStartSec=15min
