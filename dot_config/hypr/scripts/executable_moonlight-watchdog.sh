@@ -12,10 +12,13 @@
 # "no stream" must be CONFIRMED for CONFIRM_TICKS consecutive checks before any
 # correction, and we never touch outputs while hyprlock is running/starting.
 #
-# Live-stream signal: Sunshine binds UDP video/audio ports ONLY during a session
-# (idle = zero UDP sockets, verified on this host). Presence of ANY sunshine UDP
-# socket == a stream is live. This is decoupled from MOON_FLAG on purpose, so a
-# stale flag is itself a correctable anomaly rather than a blind spot.
+# Live-stream signal: Sunshine binds its session UDP ports (video/control/audio
+# = 47998/47999/48000 with the default 47989 port base) ONLY during a session
+# (idle = zero UDP sockets, verified on this host). Detection is by PORT, never
+# by `ss -p` process name: sunshine's file capabilities make the kernel refuse
+# socket->process attribution to non-root `ss`, so a name match silently never
+# fires and every live session reads as idle. This is decoupled from MOON_FLAG
+# on purpose, so a stale flag is itself a correctable anomaly, not a blind spot.
 #
 # Modes:
 #   (no args)  run the watchdog loop (default; used by the systemd service)
@@ -44,8 +47,10 @@ PHYS=""
 
 log() { printf '[moonlight-watchdog] %s\n' "$*" >&2; }
 
-# True while a Moonlight stream is actually live (any sunshine-owned UDP socket).
-stream_live() { ss -Huanp 2>/dev/null | grep -q 'sunshine'; }
+# True while a Moonlight stream is actually live (any session UDP port bound).
+stream_live() {
+    [ -n "$(ss -Huan '( sport = :47998 or sport = :47999 or sport = :48000 )' 2>/dev/null)" ]
+}
 
 # True while the screen is locked or a lock is starting: do not touch outputs.
 locked() { pgrep -x hyprlock >/dev/null 2>&1 || [ -f "$LOCKING" ]; }
@@ -79,7 +84,7 @@ cycle() {
     PHYS="$(hypr_primary_monitor)"
     if stream_live; then
         [ "$act" = act ] && idle_count=0
-        [ "$act" != act ] && log "verdict: STREAM LIVE (sunshine UDP present) — would not act"
+        [ "$act" != act ] && log "verdict: STREAM LIVE (session UDP port bound) — would not act"
         return 0
     fi
     local found; found="$(anomalies | paste -sd, -)"
@@ -91,10 +96,17 @@ cycle() {
         fi
         return 0
     fi
-    # Acting loop path: require sustained idle before correcting.
+    # Acting loop path: the ANOMALOUS idle state itself must persist for
+    # CONFIRM_TICKS consecutive checks. Counting plain idle ticks is not
+    # enough: a broken stream detector accumulates "idle" forever, so the
+    # confirmation arrives pre-satisfied and the correction fires on the very
+    # first tick after a session engages — yanking a live desktop.
+    if [ -z "$found" ]; then
+        idle_count=0
+        return 0
+    fi
     idle_count=$((idle_count + 1))
     [ "$idle_count" -lt "$CONFIRM_TICKS" ] && return 0
-    [ -z "$found" ] && return 0
     if locked; then
         log "anomalies=[$found] but screen is locked — deferring correction"
         return 0
