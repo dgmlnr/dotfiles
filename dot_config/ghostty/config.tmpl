@@ -82,3 +82,16 @@ keybind = alt+s=write_screen_file:paste
 # Swapped Gentleman's custom palette for the built-in Dracula theme.
 # Original Gentleman palette is saved in engram ("Gentleman ghostty palette") to revert.
 theme = Dracula
+
+
+# ┌──────────────────────────────────────────────────────────────────────────────┐
+# │                            PER-HOST OVERRIDES                                │
+# └──────────────────────────────────────────────────────────────────────────────┘
+
+# Same convention as hypr: everything above is shared, anything that depends on
+# this machine's hardware lives in host/<hostname>.conf. Later directives win,
+# so a host file can override any setting above it.
+#
+# Add a host/<hostname>.conf for every new machine — a missing file is a load
+# error, not a silently skipped include.
+config-file = ~/.config/ghostty/host/{{ .chezmoi.hostname }}.conf
