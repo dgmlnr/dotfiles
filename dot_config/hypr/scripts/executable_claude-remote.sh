@@ -101,4 +101,11 @@ done
   kill "$target" 2>/dev/null                  # let Restart=always respawn us
 ) &
 
-exec claude --remote-control
+# --dangerously-skip-permissions is load-bearing for an UNATTENDED session:
+# settings.json's `permissions.defaultMode: "bypassPermissions"` gets overridden
+# at session start by server-synced GrowthBook flags (tengu_quill_harbor:
+# "acceptEdits"), which drops the session into Accept Edits — and Accept Edits
+# approves edits but prompts on every Bash command. On a Remote Control session
+# those prompts land on the phone, one per command. The CLI flag is resolved
+# ahead of that override. See anthropics/claude-code#39523.
+exec claude --remote-control --dangerously-skip-permissions

@@ -110,6 +110,19 @@ alias ll='eza -la --icons=auto --git --group-directories-first'
 alias la='eza -a --icons=auto --group-directories-first'
 alias lt='eza --tree --level=2 --icons=auto --group-directories-first'
 
+# claude — always launch in bypass permissions mode.
+#
+# `permissions.defaultMode: "bypassPermissions"` in ~/.claude/settings.json is
+# unreliable: server-synced GrowthBook flags (tengu_quill_harbor: "acceptEdits",
+# tengu_permission_friction) silently override it at session start, so sessions
+# land in Accept Edits and prompt on every Bash command. See
+# https://github.com/anthropics/claude-code/issues/39523 — open, unresolved.
+#
+# The CLI flag is resolved before that override, so it holds. An abbr rather
+# than an alias keeps the flag visible and editable on the command line for the
+# times you'd rather not have it.
+abbr -a claude 'claude --dangerously-skip-permissions'
+
 alias fzfbat='fzf --preview="bat --theme=gruvbox-dark --color=always {}"'
 alias fzfnvim='nvim (fzf --preview="bat --theme=gruvbox-dark --color=always {}")'
 
