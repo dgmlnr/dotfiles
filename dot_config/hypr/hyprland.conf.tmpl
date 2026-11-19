@@ -290,6 +290,11 @@ windowrule = match:class gsimplecal, move 775 46
 # The rule is shared; the autostart that produces the window is per-host,
 # because the two hosts launch that session by different mechanisms.
 windowrule = match:class com.claude.remote, workspace special:claude silent
+# LOAD-BEARING: ghostty only spawns its command once the surface gets its first
+# frame. A window that is born hidden never gets one, so without this rule the
+# unit reports active (running) while no claude process exists at all — until
+# someone peeks at the workspace. Symptom: ghostty with zero child processes.
+windowrule = match:class com.claude.remote, render_unfocused on
 
 # Thunderbird lives on workspace 10. silent = opens there without pulling focus.
 # Shared: the rule is harmless with no Thunderbird running, and it keeps manual
